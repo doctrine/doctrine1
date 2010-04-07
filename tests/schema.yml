@@ -8,6 +8,8 @@ SchemaTestUser:
       autoincrement: true
     username:
       type: string(255)
+      charset: utf8
+      collation: utf8_general_ci
     password:
       type: string(255)
 

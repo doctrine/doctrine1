@@ -364,4 +364,20 @@ class Doctrine_Export_Mysql_TestCase extends Doctrine_UnitTestCase
         $this->assertEqual($sql[0], 'CREATE TABLE mytable (id TINYINT(1), lang INT, INDEX id_idx (id), INDEX lang_idx (lang)) ENGINE = INNODB');
         $this->assertEqual($sql[1], 'ALTER TABLE mytable ADD FOREIGN KEY (id, lang) REFERENCES sometable(id, lang)');
     }
+    public function testCreateTableSupportsFieldCharset()
+    {
+        $sql = $this->export->createTableSql('mytable', array(
+            'name' => array('type' => 'string', 'length' => 255, 'charset' => 'utf8'),
+        ));
+
+        $this->assertEqual($sql[0], 'CREATE TABLE mytable (name VARCHAR(255) CHARACTER SET utf8) ENGINE = INNODB');
+    }
+    public function testCreateTableSupportsFieldCollation()
+    {
+        $sql = $this->export->createTableSql('mytable', array(
+            'name' => array('type' => 'string', 'length' => 255, 'collation' => 'utf8_general_ci'),
+        ));
+
+        $this->assertEqual($sql[0], 'CREATE TABLE mytable (name VARCHAR(255) COLLATE utf8_general_ci) ENGINE = INNODB');
+    }
 }

@@ -274,8 +274,9 @@ class Doctrine_Query_Join_TestCase extends Doctrine_UnitTestCase
         $this->assertTrue(isset($coll['City 1']));
         $this->assertTrue(isset($coll['City 2']));
         $this->assertTrue(isset($coll['City 3']));
+        $this->assertEqual('name', $coll->getKeyColumn());
     }
-    
+
     public function testMapKeywordThrowsExceptionOnNonExistentColumn()
     {
         try {

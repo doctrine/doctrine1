@@ -1,6 +1,6 @@
 <?php
 /*
- *  $Id: Record.php 7662 2010-06-08 18:51:18Z jwage $
+ *  $Id: Record.php 7663 2010-06-08 19:00:08Z jwage $
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -29,7 +29,7 @@
  * @license     http://www.opensource.org/licenses/lgpl-license.php LGPL
  * @link        www.doctrine-project.org
  * @since       1.0
- * @version     $Revision: 7662 $
+ * @version     $Revision: 7663 $
  */
 abstract class Doctrine_Record extends Doctrine_Record_Abstract implements Countable, IteratorAggregate, Serializable
 {
@@ -832,6 +832,9 @@ abstract class Doctrine_Record extends Doctrine_Record_Abstract implements Count
                     case 'gzip':
                         $vars['_data'][$k] = gzcompress($vars['_data'][$k]);
                         break;
+                    case 'enum':
+                        $vars['_data'][$k] = $this->_table->enumIndex($k, $vars['_data'][$k]);
+                        break;
                 }
             }
         }
@@ -879,7 +882,7 @@ abstract class Doctrine_Record extends Doctrine_Record_Abstract implements Count
                     $this->_data[$k] = unserialize($this->_data[$k]);
                     break;
                 case 'gzip':
-                   $this->_data[$k] = gzuncompress($this->_data[$k]);
+                    $this->_data[$k] = gzuncompress($this->_data[$k]);
                     break;
                 case 'enum':
                     $this->_data[$k] = $this->_table->enumValue($k, $this->_data[$k]);

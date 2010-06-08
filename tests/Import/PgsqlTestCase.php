@@ -49,28 +49,24 @@ class Doctrine_Import_Pgsql_TestCase extends Doctrine_UnitTestCase
         $this->import->listTableColumns('table');
         
         $this->assertEqual($this->adapter->pop(), "SELECT
-                                                        a.attnum,
-                                                        a.attname AS field,
-                                                        t.typname AS type,
-                                                        format_type(a.atttypid, a.atttypmod) AS complete_type,
-                                                        a.attnotnull AS isnotnull,
-                                                        (SELECT 't'
-                                                          FROM pg_index
-                                                          WHERE c.oid = pg_index.indrelid
-                                                          AND a.attnum = ANY (pg_index.indkey)
-                                                          AND pg_index.indisprimary = 't'
-                                                        ) AS pri,
-                                                        (SELECT pg_attrdef.adsrc
-                                                          FROM pg_attrdef
-                                                          WHERE c.oid = pg_attrdef.adrelid
-                                                          AND pg_attrdef.adnum=a.attnum
-                                                        ) AS default
-                                                  FROM pg_attribute a, pg_class c, pg_type t
-                                                  WHERE c.relname = 'table'
-                                                        AND a.attnum > 0
-                                                        AND a.attrelid = c.oid
-                                                        AND a.atttypid = t.oid
-                                                  ORDER BY a.attnum");
+                                                     ordinal_position as attnum,
+                                                     column_name as field,
+                                                     udt_name as type,
+                                                     data_type as complete_type,
+                                                     is_nullable as isnotnull,
+                                                     column_default as default,
+                                                     (
+                                                       SELECT 't'
+                                                         FROM pg_index, pg_attribute a, pg_class c, pg_type t
+                                                         WHERE c.relname = table_name AND a.attname = column_name
+                                                         AND a.attnum > 0 AND a.attrelid = c.oid AND a.atttypid = t.oid
+                                                         AND c.oid = pg_index.indrelid AND a.attnum = ANY (pg_index.indkey)
+                                                         AND pg_index.indisprimary = 't'
+                                                     ) as pri,
+                                                     character_maximum_length as length
+                                                   FROM information_schema.COLUMNS
+                                                   WHERE table_name = 'table'
+                                                   ORDER BY ordinal_position");
     }
     public function testListTableIndexesExecutesSql()
     {

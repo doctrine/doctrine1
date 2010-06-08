@@ -1,6 +1,6 @@
 <?php
 /*
- *  $Id: Record.php 7640 2010-06-08 14:34:58Z jwage $
+ *  $Id: Record.php 7654 2010-06-08 17:34:59Z jwage $
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -29,7 +29,7 @@
  * @license     http://www.opensource.org/licenses/lgpl-license.php LGPL
  * @link        www.doctrine-project.org
  * @since       1.0
- * @version     $Revision: 7640 $
+ * @version     $Revision: 7654 $
  */
 abstract class Doctrine_Record extends Doctrine_Record_Abstract implements Countable, IteratorAggregate, Serializable
 {
@@ -1530,7 +1530,7 @@ abstract class Doctrine_Record extends Doctrine_Record_Abstract implements Count
         } else if (in_array($type, array('decimal', 'float')) && is_numeric($old) && is_numeric($new)) {
             return $old * 100 != $new * 100;
         } else if (in_array($type, array('integer', 'int')) && is_numeric($old) && is_numeric($new)) {
-            return $old !== $new;
+            return $old != $new;
         } else if ($type == 'timestamp' || $type == 'date') {
             $oldStrToTime = strtotime($old);
             $newStrToTime = strtotime($new);

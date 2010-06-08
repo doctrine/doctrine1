@@ -1,6 +1,6 @@
 <?php
 /*
- *  $Id: Record.php 7663 2010-06-08 19:00:08Z jwage $
+ *  $Id: Record.php 7670 2010-06-08 20:29:44Z jwage $
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -29,7 +29,7 @@
  * @license     http://www.opensource.org/licenses/lgpl-license.php LGPL
  * @link        www.doctrine-project.org
  * @since       1.0
- * @version     $Revision: 7663 $
+ * @version     $Revision: 7670 $
  */
 abstract class Doctrine_Record extends Doctrine_Record_Abstract implements Countable, IteratorAggregate, Serializable
 {
@@ -861,9 +861,6 @@ abstract class Doctrine_Record extends Doctrine_Record_Abstract implements Count
         $manager    = Doctrine_Manager::getInstance();
         $connection = $manager->getConnectionForComponent(get_class($this));
 
-        $this->_oid = self::$_index;
-        self::$_index++;
-
         $this->_table = $connection->getTable(get_class($this));
         
         $this->preUnserialize($event);
@@ -891,7 +888,19 @@ abstract class Doctrine_Record extends Doctrine_Record_Abstract implements Count
             }
         }
 
+        // Remove existing record from the repository and table entity map.
+        $this->_table->setData($this->_data);
+        $existing_record = $this->_table->getRecord();
+        if ($existing_record->exists()) {
+            $this->_table->getRepository()->evict($existing_record->getOid());
+            $this->_table->removeRecord($existing_record);
+        }
+
+        // Add the unserialized record to repository and entity map.
+        $this->_oid = self::$_index;
+        self::$_index++;
         $this->_table->getRepository()->add($this);
+        $this->_table->addRecord($this);
 
         $this->cleanData($this->_data);
 

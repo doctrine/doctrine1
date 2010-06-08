@@ -1,6 +1,6 @@
 <?php
 /*
- *  $Id: Record.php 7496 2010-03-30 20:20:37Z jwage $
+ *  $Id: Record.php 7637 2010-06-08 14:19:14Z jwage $
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -29,7 +29,7 @@
  * @license     http://www.opensource.org/licenses/lgpl-license.php LGPL
  * @link        www.doctrine-project.org
  * @since       1.0
- * @version     $Revision: 7496 $
+ * @version     $Revision: 7637 $
  */
 abstract class Doctrine_Record extends Doctrine_Record_Abstract implements Countable, IteratorAggregate, Serializable
 {
@@ -2029,6 +2029,7 @@ abstract class Doctrine_Record extends Doctrine_Record_Abstract implements Count
                         $this->link($key, $value, false);
                     } else {
                         $this->$key->synchronizeWithArray($value);
+                        $this->$key = $this->$key;
                     }
                 }
             } else if ($this->getTable()->hasField($key) || array_key_exists($key, $this->_values)) {

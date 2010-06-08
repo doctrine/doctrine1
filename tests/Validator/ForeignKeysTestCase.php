@@ -33,6 +33,28 @@ class Doctrine_Validator_ForeignKeys_TestCase extends Doctrine_UnitTestCase
         
         $this->assertEqual(0, $errors->count());
     }
+
+    public function testSynchronizedForeignKeyIsValidIfLocalRelationIsSet()
+    {
+        $person = new TestPerson();
+        $person->synchronizeWithArray(array('Addresses' => array(array())));
+
+        $address = $person->Addresses[0];
+        $table = $address->getTable();
+        
+        $errors = $table->validateField('person_id', $address->person_id, $address);
+        $this->assertEqual(0, $errors->count());
+    }
+
+    public function testSynchronizedForeignKeyIsValidIfForeignRelationIsSet()
+    {
+        $address = new TestAddress();
+        $address->synchronizeWithArray(array('Person' => array()));
+
+        $table = $address->getTable();
+        $errors = $table->validateField('person_id', $address->person_id, $address);
+        $this->assertEqual(0, $errors->count());
+    }
 }
 
 class TestPerson extends Doctrine_Record

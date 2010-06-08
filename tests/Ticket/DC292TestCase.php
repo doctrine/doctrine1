@@ -34,7 +34,11 @@ class Doctrine_Ticket_DC292_TestCase extends Doctrine_UnitTestCase
 {
     public function testTest()
     {
-        $migration = new Doctrine_Migration(dirname(__FILE__) . '/DC292/migrations');
+        $dir = dirname(__FILE__) . '/DC292/migrations';
+        if ( ! is_dir($dir)) {
+            mkdir($dir, 0777, true);
+        }
+        $migration = new Doctrine_Migration($dir);
         $diff = new Doctrine_Migration_Diff(dirname(__FILE__) . '/DC292/from.yml', dirname(__FILE__) . '/DC292/to.yml', $migration);
         $changes = $diff->generateChanges();
         $this->assertEqual(2, count($changes['created_columns']['article']));

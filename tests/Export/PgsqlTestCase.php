@@ -143,4 +143,36 @@ class Doctrine_Export_Pgsql_TestCase extends Doctrine_UnitTestCase
                                          10 => 'ALTER TABLE foo ADD CONSTRAINT foo_local_foo_foo_locally_owned_id FOREIGN KEY (local_foo) REFERENCES foo_locally_owned(id) ON DELETE RESTRICT NOT DEFERRABLE INITIALLY IMMEDIATE', 
                                          ));
     }
+
+	public function testAlterTableSql()
+    {
+        $changes  = array(
+			'add' => array('newfield' => array('type' => 'int')),
+			'remove' => array('oldfield' => array())
+		);
+
+        $sql = $this->export->alterTableSql('mytable', $changes);
+
+		$this->assertEqual($sql, array(
+		    0 => 'ALTER TABLE mytable ADD newfield INT',
+			1 => 'ALTER TABLE mytable DROP oldfield'
+		));
+    }
+
+	public function testAlterTableSqlIdentifierQuoting()
+    {
+		$this->conn->setAttribute(Doctrine_Core::ATTR_QUOTE_IDENTIFIER, true);
+		
+        $changes  = array(
+			'add' => array('newfield' => array('type' => 'int')),
+			'remove' => array('oldfield' => array())
+		);
+
+        $sql = $this->export->alterTableSql('mytable', $changes);
+
+		$this->assertEqual($sql, array(
+		    0 => 'ALTER TABLE "mytable" ADD "newfield" INT',
+			1 => 'ALTER TABLE "mytable" DROP "oldfield"'
+		));
+    }
 }

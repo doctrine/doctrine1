@@ -1,6 +1,6 @@
 <?php
 /*
- *  $Id: Record.php 7637 2010-06-08 14:19:14Z jwage $
+ *  $Id: Record.php 7640 2010-06-08 14:34:58Z jwage $
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -29,7 +29,7 @@
  * @license     http://www.opensource.org/licenses/lgpl-license.php LGPL
  * @link        www.doctrine-project.org
  * @since       1.0
- * @version     $Revision: 7637 $
+ * @version     $Revision: 7640 $
  */
 abstract class Doctrine_Record extends Doctrine_Record_Abstract implements Countable, IteratorAggregate, Serializable
 {
@@ -2514,7 +2514,11 @@ abstract class Doctrine_Record extends Doctrine_Record_Abstract implements Count
                 if ($this->$alias instanceof Doctrine_Record) {
                     $this->set($alias, $record);
                 } else {
-                    $this->get($alias)->add($record);
+                    if ($c = $this->get($alias)) {
+                        $c->add($record);
+                    } else {
+                        $this->set($alias, $record);
+                    }
                 }
             }
 

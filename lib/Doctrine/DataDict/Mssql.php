@@ -1,6 +1,6 @@
 <?php
 /*
- *  $Id: Mssql.php 7490 2010-03-29 19:53:27Z jwage $
+ *  $Id: Mssql.php 7635 2010-06-08 13:56:17Z jwage $
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -27,7 +27,7 @@
  * @author      Lukas Smith <smith@pooteeweet.org> (PEAR MDB2 library)
  * @author      Frank M. Kromann <frank@kromann.info> (PEAR MDB2 Mssql driver)
  * @author      David Coallier <davidc@php.net> (PEAR MDB2 Mssql driver)
- * @version     $Revision: 7490 $
+ * @version     $Revision: 7635 $
  * @link        www.doctrine-project.org
  * @since       1.0
  */
@@ -256,7 +256,7 @@ class Doctrine_DataDict_Mssql extends Doctrine_DataDict
         // MSSQL does not support the UNSIGNED keyword
         $unsigned = '';
         $comment  = (isset($field['comment']) && $field['comment']) 
-            ? " COMMENT '" . $field['comment'] . "'" : '';
+            ? " COMMENT " . $this->conn->quote($field['comment'], 'text') : '';
 
         $name = $this->conn->quoteIdentifier($name, true);
 

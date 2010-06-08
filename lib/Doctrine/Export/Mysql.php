@@ -1,6 +1,6 @@
 <?php
 /*
- *  $Id: Mysql.php 7544 2010-04-07 11:57:41Z kriswallsmith $
+ *  $Id: Mysql.php 7635 2010-06-08 13:56:17Z jwage $
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -29,7 +29,7 @@
  * @license     http://www.opensource.org/licenses/lgpl-license.php LGPL
  * @link        www.doctrine-project.org
  * @since       1.0
- * @version     $Revision: 7544 $
+ * @version     $Revision: 7635 $
  */
 class Doctrine_Export_Mysql extends Doctrine_Export
 {
@@ -267,7 +267,7 @@ class Doctrine_Export_Mysql extends Doctrine_Export
                     ' ' . $field['check'] : '';
 
         $comment   = (isset($field['comment']) && $field['comment']) ?
-                    " COMMENT '" . $field['comment'] . "'" : '';
+                    " COMMENT " . $this->conn->quote($field['comment'], 'text') : '';
 
         $method = 'get' . $field['type'] . 'Declaration';
 

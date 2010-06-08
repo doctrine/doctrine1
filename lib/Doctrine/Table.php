@@ -1,6 +1,6 @@
 <?php
 /*
- *  $Id: Table.php 7490 2010-03-29 19:53:27Z jwage $
+ *  $Id: Table.php 7645 2010-06-08 15:15:29Z jwage $
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -28,7 +28,7 @@
  * @package     Doctrine
  * @subpackage  Table
  * @license     http://www.opensource.org/licenses/lgpl-license.php LGPL
- * @version     $Revision: 7490 $
+ * @version     $Revision: 7645 $
  * @link        www.doctrine-project.org
  * @since       1.0
  * @method mixed findBy*(mixed $value) magic finders; @see __call()
@@ -1121,7 +1121,11 @@ class Doctrine_Table extends Doctrine_Configurable implements Countable
            $alias = $this->getComponentName();
         }
    
-        $e1 = explode(',', $orderBy);
+        if ( ! is_array($orderBy)) {
+            $e1 = explode(',', $orderBy);
+        } else {
+            $e1 = $orderBy;
+        }
         $e1 = array_map('trim', $e1);
         foreach ($e1 as $k => $v) {
             $e2 = explode(' ', $v);

@@ -1,6 +1,6 @@
 <?php
 /*
- *  $Id: Table.php 7663 2010-06-08 19:00:08Z jwage $
+ *  $Id: Table.php 7668 2010-06-08 20:14:58Z jwage $
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -28,7 +28,7 @@
  * @package     Doctrine
  * @subpackage  Table
  * @license     http://www.opensource.org/licenses/lgpl-license.php LGPL
- * @version     $Revision: 7663 $
+ * @version     $Revision: 7668 $
  * @link        www.doctrine-project.org
  * @since       1.0
  * @method mixed findBy*(mixed $value) magic finders; @see __call()
@@ -1033,7 +1033,7 @@ class Doctrine_Table extends Doctrine_Configurable implements Countable
 
         $class = $this->getAttribute(Doctrine_Core::ATTR_QUERY_CLASS);
 
-        return Doctrine_Query::create(null, $class)
+        return Doctrine_Query::create($this->_conn, $class)
             ->from($this->getComponentName() . $alias);
     }
 

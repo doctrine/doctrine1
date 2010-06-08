@@ -1,6 +1,6 @@
 <?php
 /*
- *  $Id: Query.php 7636 2010-06-08 14:09:40Z jwage $
+ *  $Id: Query.php 7674 2010-06-08 22:59:01Z jwage $
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -30,7 +30,7 @@
  * @license     http://www.opensource.org/licenses/lgpl-license.php LGPL
  * @link        www.doctrine-project.org
  * @since       1.0
- * @version     $Revision: 7636 $
+ * @version     $Revision: 7674 $
  * @author      Konsta Vesterinen <kvesteri@cc.hut.fi>
  * @todo        Proposal: This class does far too much. It should have only 1 task: Collecting
  *              the DQL query parts and the query parameters (the query state and caching options/methods
@@ -627,10 +627,10 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
                 }
 
                 // Fix for http://www.doctrine-project.org/jira/browse/DC-706
-                if ($pos !== false && isset($terms[0]) && substr($terms[0], 0, 1) !== "'" && substr($terms[0], 0, $pos) == '') {
-                    $components = $this->_queryComponents;
-                    reset($components);
-                    $componentAlias = key($components);
+                if ($pos !== false && substr($expression, 0, 1) !== "'" && substr($expression, 0, $pos) == '') {
+                    $_queryComponents = $this->_queryComponents;
+                    reset($_queryComponents);
+                    $componentAlias = key($_queryComponents);
                 } else {
                     $componentAlias = $this->getExpressionOwner($expression);
                 }

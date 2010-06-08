@@ -1,6 +1,6 @@
 <?php
 /*
- *  $Id: Mssql.php 7652 2010-06-08 15:52:05Z jwage $
+ *  $Id: Mssql.php 7659 2010-06-08 18:16:17Z jwage $
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -27,7 +27,7 @@
  * @license     http://www.opensource.org/licenses/lgpl-license.php LGPL
  * @author      Konsta Vesterinen <kvesteri@cc.hut.fi>
  * @author      Lukas Smith <smith@pooteeweet.org> (PEAR MDB2 library)
- * @version     $Revision: 7652 $
+ * @version     $Revision: 7659 $
  * @link        www.doctrine-project.org
  * @since       1.0
  */
@@ -64,6 +64,8 @@ class Doctrine_Connection_Mssql extends Doctrine_Connection_Common
                           'result_introspection'  => true,
                           'prepared_statements'   => 'emulated',
                           );
+
+        $this->properties['varchar_max_length'] = 8000;
 
         parent::__construct($manager, $adapter);
     }

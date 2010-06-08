@@ -1,6 +1,6 @@
 <?php
 /*
- *  $Id: Mssql.php 7635 2010-06-08 13:56:17Z jwage $
+ *  $Id: Mssql.php 7659 2010-06-08 18:16:17Z jwage $
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -27,7 +27,7 @@
  * @author      Lukas Smith <smith@pooteeweet.org> (PEAR MDB2 library)
  * @author      Frank M. Kromann <frank@kromann.info> (PEAR MDB2 Mssql driver)
  * @author      David Coallier <davidc@php.net> (PEAR MDB2 Mssql driver)
- * @version     $Revision: 7635 $
+ * @version     $Revision: 7659 $
  * @link        www.doctrine-project.org
  * @since       1.0
  */
@@ -77,7 +77,7 @@ class Doctrine_DataDict_Mssql extends Doctrine_DataDict
                 $fixed  = ((isset($field['fixed']) && $field['fixed']) || $field['type'] == 'char') ? true : false;
 
                 return $fixed ? ($length ? 'CHAR('.$length.')' : 'CHAR('.$this->conn->varchar_max_length.')')
-                    : ($length ? 'VARCHAR('.$length.')' : 'TEXT');
+                    : (($length && $length <= $this->conn->varchar_max_length) ? 'VARCHAR('.$length.')' : 'TEXT');
             case 'clob':
                 if ( ! empty($field['length'])) {
                     $length = $field['length'];

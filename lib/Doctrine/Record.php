@@ -1,6 +1,6 @@
 <?php
 /*
- *  $Id: Record.php 7654 2010-06-08 17:34:59Z jwage $
+ *  $Id: Record.php 7662 2010-06-08 18:51:18Z jwage $
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -29,7 +29,7 @@
  * @license     http://www.opensource.org/licenses/lgpl-license.php LGPL
  * @link        www.doctrine-project.org
  * @since       1.0
- * @version     $Revision: 7654 $
+ * @version     $Revision: 7662 $
  */
 abstract class Doctrine_Record extends Doctrine_Record_Abstract implements Countable, IteratorAggregate, Serializable
 {
@@ -2179,8 +2179,8 @@ abstract class Doctrine_Record extends Doctrine_Record_Abstract implements Count
     public function copy($deep = false)
     {
         $data = $this->_data;
-
-        if ($this->_table->getIdentifierType() === Doctrine_Core::IDENTIFIER_AUTOINC) {
+        $idtype = $this->_table->getIdentifierType();
+        if ($idtype === Doctrine_Core::IDENTIFIER_AUTOINC || $idtype === Doctrine_Core::IDENTIFIER_SEQUENCE) {
             $id = $this->_table->getIdentifier();
 
             unset($data[$id]);

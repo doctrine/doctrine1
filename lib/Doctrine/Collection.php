@@ -1,6 +1,6 @@
 <?php
 /*
- *  $Id: Collection.php 7490 2010-03-29 19:53:27Z jwage $
+ *  $Id: Collection.php 7648 2010-06-08 15:27:09Z jwage $
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -28,7 +28,7 @@
  * @license     http://www.opensource.org/licenses/lgpl-license.php LGPL
  * @link        www.doctrine-project.org
  * @since       1.0
- * @version     $Revision: 7490 $
+ * @version     $Revision: 7648 $
  * @author      Konsta Vesterinen <kvesteri@cc.hut.fi>
  */
 class Doctrine_Collection extends Doctrine_Access implements Countable, IteratorAggregate, Serializable
@@ -152,7 +152,7 @@ class Doctrine_Collection extends Doctrine_Access implements Countable, Iterator
         $vars = get_object_vars($this);
 
         unset($vars['reference']);
-        unset($vars['reference_field']);
+        unset($vars['referenceField']);
         unset($vars['relation']);
         unset($vars['expandable']);
         unset($vars['expanded']);

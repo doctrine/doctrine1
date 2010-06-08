@@ -1,6 +1,6 @@
 <?php
 /*
- *  $Id: Transaction.php 7650 2010-06-08 15:37:35Z jwage $
+ *  $Id: Transaction.php 7651 2010-06-08 15:47:06Z jwage $
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -30,7 +30,7 @@
  * @subpackage  Transaction
  * @link        www.doctrine-project.org
  * @since       1.0
- * @version     $Revision: 7650 $
+ * @version     $Revision: 7651 $
  */
 class Doctrine_Transaction extends Doctrine_Connection_Module
 {
@@ -259,7 +259,7 @@ class Doctrine_Transaction extends Doctrine_Connection_Module
                  
             if ($this->_nestingLevel == 1 || $this->_internalNestingLevel == 1) {
                 if ( ! empty($this->invalid)) {
-                    if ($this->_internalNestingLevel == 1 || $this->_nestingLevel == 1) {
+                    if ($this->_internalNestingLevel == 1) {
                         $tmp = $this->invalid;
                         $this->invalid = array();
                         throw new Doctrine_Validator_Exception($tmp);

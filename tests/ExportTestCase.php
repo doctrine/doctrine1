@@ -85,4 +85,12 @@ class Doctrine_Export_TestCase extends Doctrine_UnitTestCase
     {
         
     }
+    public function testDropDottedForeignKey()
+    {
+        $this->export->dropForeignKey('sometable', 'normal_foreign_key');
+        $this->assertEqual($this->adapter->pop(), 'ALTER TABLE sometable DROP CONSTRAINT normal_foreign_key');
+
+        $this->export->dropForeignKey('sometable', 'dotted.foreign.key');
+        $this->assertEqual($this->adapter->pop(), 'ALTER TABLE sometable DROP CONSTRAINT dotted_foreign_key');
+    }
 }

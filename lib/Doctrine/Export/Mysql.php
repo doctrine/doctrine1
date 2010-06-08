@@ -1,6 +1,6 @@
 <?php
 /*
- *  $Id: Mysql.php 7647 2010-06-08 15:26:00Z jwage $
+ *  $Id: Mysql.php 7653 2010-06-08 15:54:31Z jwage $
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -29,7 +29,7 @@
  * @license     http://www.opensource.org/licenses/lgpl-license.php LGPL
  * @link        www.doctrine-project.org
  * @since       1.0
- * @version     $Revision: 7647 $
+ * @version     $Revision: 7653 $
  */
 class Doctrine_Export_Mysql extends Doctrine_Export
 {
@@ -812,7 +812,7 @@ class Doctrine_Export_Mysql extends Doctrine_Export
     public function dropForeignKey($table, $name)
     {
         $table = $this->conn->quoteIdentifier($table);
-        $name  = $this->conn->quoteIdentifier($name);
+        $name  = $this->conn->quoteIdentifier($this->conn->formatter->getForeignKeyName($name));
 
         return $this->conn->exec('ALTER TABLE ' . $table . ' DROP FOREIGN KEY ' . $name);
     }

@@ -43,10 +43,56 @@ class Doctrine_Hydrate_Driver_TestCase extends Doctrine_UnitTestCase
 
         $this->assertEqual($result, 'MY_HYDRATOR');
     }
+
+    public function testCustomHydratorUsingClassInstance()
+    {
+        $hydrator = new MyHydrator();
+        Doctrine_Manager::getInstance()
+            ->registerHydrator('MyHydrator', $hydrator);
+
+        $result = Doctrine_Core::getTable('User')
+            ->createQuery('u')
+            ->execute(array(), 'MyHydrator');
+
+        $this->assertEqual($result, 'MY_HYDRATOR');
+    }
+
+    public function testCustomHydratorConstructor()
+    {
+        $queryComponents = array('queryComponents');
+        $tableAliases = array('tableAliases');
+        $hydrationMode = array('hydrationMode');
+
+        $hydrator = new MyHydrator($queryComponents, $tableAliases, $hydrationMode);
+
+        $this->assertEqual($queryComponents, $hydrator->_queryComponents);
+        $this->assertEqual($tableAliases, $hydrator->_tableAliases);
+        $this->assertEqual($hydrationMode, $hydrator->_hydrationMode);
+    }
+
+    public function testCustomHydratorUsingClassInstanceExceptingException()
+    {
+        $hydrator = new StdClass();
+        Doctrine_Manager::getInstance()
+            ->registerHydrator('MyHydrator', $hydrator);
+
+        try {
+             Doctrine_Core::getTable('User')
+                ->createQuery('u')
+                ->execute(array(), 'MyHydrator');
+
+            $this->fail('Expected exception not thrown: Doctrine_Hydrator_Exception');
+        } catch (Doctrine_Hydrator_Exception $e) {
+        }
+    }
 }
 
 class MyHydrator extends Doctrine_Hydrator_Abstract
 {
+    public $_queryComponents;
+    public $_tableAliases;
+    public $_hydrationMode;
+
     public function hydrateResultSet($stmt)
     {
         return 'MY_HYDRATOR';

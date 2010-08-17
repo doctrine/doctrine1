@@ -2624,6 +2624,7 @@ class Doctrine_Table extends Doctrine_Configurable implements Countable
                     || $name == 'length'
                     || $name == 'fixed'
                     || $name == 'comment'
+                    || $name == 'alias'
                     || $name == 'extra') {
                 continue;
             }

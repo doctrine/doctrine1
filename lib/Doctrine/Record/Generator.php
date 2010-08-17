@@ -432,16 +432,6 @@ abstract class Doctrine_Record_Generator extends Doctrine_Record_Abstract
         $definition['tableName'] = $table->getTableName();
         $definition['actAs'] = $table->getTemplates();
 
-        // FIX: DC-825 This is probably not the right place to fix the issue.
-        // Doctrine_Table::getColumns() should return the correct alias information.
-        foreach ($definition['columns'] as $column => $def) {
-            if ($column == $table->getFieldName($column)) {
-                continue;
-            }
-
-            $definition['columns'][$column]['name'] = $column . ' as ' . $table->getFieldName($column);
-        }
-
         return $this->generateClass($definition);
     }
 

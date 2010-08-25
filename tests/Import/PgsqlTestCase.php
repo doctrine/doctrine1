@@ -53,7 +53,6 @@ class Doctrine_Import_Pgsql_TestCase extends Doctrine_UnitTestCase
                                                      column_name as field,
                                                      udt_name as type,
                                                      data_type as complete_type,
-                                                     t.typtype AS typtype,
                                                      is_nullable as isnotnull,
                                                      column_default as default,
                                                      (
@@ -63,7 +62,6 @@ class Doctrine_Import_Pgsql_TestCase extends Doctrine_UnitTestCase
                                                          AND a.attnum > 0 AND a.attrelid = c.oid AND a.atttypid = t.oid
                                                          AND c.oid = pg_index.indrelid AND a.attnum = ANY (pg_index.indkey)
                                                          AND pg_index.indisprimary = 't'
-                                                         AND format_type(a.atttypid, a.atttypmod) NOT LIKE 'information_schema%'
                                                      ) as pri,
                                                      character_maximum_length as length
                                                    FROM information_schema.COLUMNS

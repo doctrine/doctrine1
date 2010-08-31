@@ -1,6 +1,6 @@
 <?php
 /*
- *  $Id: Mssql.php 7659 2010-06-08 18:16:17Z jwage $
+ *  $Id: Mssql.php 7690 2010-08-31 17:11:24Z jwage $
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -27,7 +27,7 @@
  * @license     http://www.opensource.org/licenses/lgpl-license.php LGPL
  * @author      Konsta Vesterinen <kvesteri@cc.hut.fi>
  * @author      Lukas Smith <smith@pooteeweet.org> (PEAR MDB2 library)
- * @version     $Revision: 7659 $
+ * @version     $Revision: 7690 $
  * @link        www.doctrine-project.org
  * @since       1.0
  */
@@ -168,9 +168,9 @@ class Doctrine_Connection_Mssql extends Doctrine_Connection_Common
                     $from_clause_pos = strpos($helper_string, ' FROM ');
                     $fields_string = substr($helper_string, 0, $from_clause_pos + 1);
 
-                    $field_array = explode(',', $fields_string);
-                    $field_array = array_shift($field_array);
-                    $aux2 = spliti(' as ', $field_array);
+                    $fieldArray = explode(',', $fields_string);
+                    $fieldArray = array_shift($fieldArray);
+                    $aux2 = preg_split('/ as /i', $fieldArray);
                     $aux2 = explode('.', end($aux2));
 
                     $aliases[$i] = trim(end($aux2));
@@ -187,9 +187,9 @@ class Doctrine_Connection_Mssql extends Doctrine_Connection_Common
             }
 
             $fields_string = substr($query, strlen($selectReplace), strpos($query, ' FROM ') - strlen($selectReplace));
-            $field_array = explode(',', $fields_string);
-            $field_array = array_shift($field_array);
-            $aux2 = spliti(' as ', $field_array);
+            $fieldArray = explode(',', $fields_string);
+            $fieldArray = array_shift($fieldArray);
+            $aux2 = preg_split('/ as /i', $fieldArray);
             $aux2 = explode('.', end($aux2));
             $key_field = trim(end($aux2));
 

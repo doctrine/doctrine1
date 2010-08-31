@@ -2735,10 +2735,10 @@ class Doctrine_Table extends Doctrine_Configurable implements Countable
         $fieldsFound = $matches[1];
         $operatorFound = array_map('strtoupper', $matches[2]);
 
-        // Check if $fieldName has unidentified parts left
+        // Check if $fieldName has unidentified parts left 
         if (strlen(implode('', $fieldsFound) . implode('', $operatorFound)) !== strlen($fieldName)) {
             $expression = preg_replace('/(' . implode('|', $fields) . ')(Or|And)?/', '($1)$2', $fieldName);
-            throw new Doctrine_Table_Exception('Invalid expression found: ' . $expression);
+            throw new Doctrine_Table_Exception('Invalid expression found: ' . $expression);    
         }
 
         // Build result
@@ -2763,7 +2763,7 @@ class Doctrine_Table extends Doctrine_Configurable implements Countable
             }
 
             $where .= ' ' . strtoupper($operatorFound[$index]) . ' ';
-
+            
             $lastOperator = $operatorFound[$index];
         }
 

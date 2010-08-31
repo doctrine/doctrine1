@@ -1374,6 +1374,10 @@ class Doctrine_Table extends Doctrine_Configurable implements Countable
 
         $options['type'] = $type;
         $options['length'] = $length;
+        
+        if (strtolower($fieldName) != $name) {
+            $options['alias'] = $fieldName;
+        }
 
         foreach ($defaultOptions as $key => $value) {
             if ( ! array_key_exists($key, $options) || is_null($options[$key])) {
@@ -2620,6 +2624,7 @@ class Doctrine_Table extends Doctrine_Configurable implements Countable
                     || $name == 'length'
                     || $name == 'fixed'
                     || $name == 'comment'
+                    || $name == 'alias'
                     || $name == 'extra') {
                 continue;
             }

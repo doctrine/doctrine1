@@ -346,20 +346,16 @@ class Doctrine_Connection_Mssql extends Doctrine_Connection_Common
      */
     protected function replaceBoundParamsWithInlineValuesInQuery($query, array $params) {
 
-        foreach($params as $key => $value) {
-            if(is_null($value)) {
-                $value = 'NULL';
-            }
-            else {
-                $value = $this->quote($value);
-            }
+        foreach ($params as $key => $value) {
+            $value = is_null($value) ? 'NULL' : $this->quote($value);
 
-            $re = '/([=><,\(][^\\\']*)(\?)/iU';
+            // Supported:
+            // * all variations of =, <, >
+            // * LIKE
+            $re = '/(?<=WHERE)(\s+.+?\s+([=<>]+|LIKE)\s+)(\?)/';
 
             $query = preg_replace($re, "\\1 {$value}", $query, 1);
-
         }
-
         return $query;
 
     }

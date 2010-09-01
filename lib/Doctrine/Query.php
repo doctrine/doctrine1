@@ -577,6 +577,8 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
     public function getExpressionOwner($expr)
     {
         if (strtoupper(substr(trim($expr, '( '), 0, 6)) !== 'SELECT') {
+            // Fix for http://www.doctrine-project.org/jira/browse/DC-754
+            $expr = preg_replace('/([\'\"])[^\1]*\1/', '', $expr);
             preg_match_all("/[a-z_][a-z0-9_]*\.[a-z_][a-z0-9_]*[\.[a-z0-9]+]*/i", $expr, $matches);
 
             $match = current($matches);
@@ -1763,8 +1765,9 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
                                                                  'parent'   => $parent,
                                                                  'relation' => $relation,
                                                                  'map'      => null);
-                if ( ! $relation->isOneToOne()) {
-                   $this->_needsSubquery = true;
+                // Fix for http://www.doctrine-project.org/jira/browse/DC-701
+                if ( ! $relation->isOneToOne() && ! $this->disableLimitSubquery) {
+                    $this->_needsSubquery = true;
                 }
 
                 $localAlias   = $this->getSqlTableAlias($parent, $localTable->getTableName());

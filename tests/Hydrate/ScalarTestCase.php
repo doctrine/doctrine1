@@ -153,4 +153,93 @@ class Doctrine_Hydrate_Scalar_TestCase extends Doctrine_UnitTestCase
         
         $q->free();
     }
+
+    public function testHydrateArrayShallowWithJoin()
+    {
+        $q = Doctrine_Query::create();
+        $q->select("u.*, p.id as phonenumber_id, p.phonenumber, p.entity_id")
+            ->from("User u")
+            ->innerJoin("u.Phonenumber p");
+
+        $res = $q->execute(array(), Doctrine_Core::HYDRATE_ARRAY_SHALLOW);
+
+        $this->assertTrue(is_array($res));
+        $this->assertEqual(2, count($res));
+        //row1
+        $this->assertEqual(1, $res[0]['id']);
+        $this->assertEqual('romanb', $res[0]['name']);
+        $this->assertEqual(null, $res[0]['loginname']);
+        $this->assertEqual(null, $res[0]['password']);
+        $this->assertEqual(0, $res[0]['type']);
+        $this->assertEqual(null, $res[0]['created']);
+        $this->assertEqual(null, $res[0]['updated']);
+        $this->assertEqual(null, $res[0]['email_id']);
+        $this->assertEqual(1, $res[0]['phonenumber_id']);
+        $this->assertEqual(112, $res[0]['phonenumber']);
+        $this->assertEqual(1, $res[0]['entity_id']);
+        //row2
+        $this->assertEqual(1, $res[1]['id']);
+        $this->assertEqual('romanb', $res[1]['name']);
+        $this->assertEqual(null, $res[1]['loginname']);
+        $this->assertEqual(null, $res[1]['password']);
+        $this->assertEqual(0, $res[1]['type']);
+        $this->assertEqual(null, $res[1]['created']);
+        $this->assertEqual(null, $res[1]['updated']);
+        $this->assertEqual(null, $res[1]['email_id']);
+        $this->assertEqual(2, $res[1]['phonenumber_id']);
+        $this->assertEqual(110, $res[1]['phonenumber']);
+        $this->assertEqual(1, $res[1]['entity_id']);
+
+        $q->free();
+    }
+
+    public function testHydrateArrayShallow()
+    {
+        $q = Doctrine_Query::create();
+        $q->select("u.*")->from("User u");
+
+        $res = $q->execute(array(), Doctrine_Core::HYDRATE_ARRAY_SHALLOW);
+
+        $this->assertTrue(is_array($res));
+        $this->assertEqual(1, count($res));
+        //row1
+        $this->assertEqual(1, $res[0]['id']);
+        $this->assertEqual('romanb', $res[0]['name']);
+        $this->assertEqual(null, $res[0]['loginname']);
+        $this->assertEqual(null, $res[0]['password']);
+        $this->assertEqual(0, $res[0]['type']);
+        $this->assertEqual(null, $res[0]['created']);
+        $this->assertEqual(null, $res[0]['updated']);
+        $this->assertEqual(null, $res[0]['email_id']);
+
+        $q->free();
+    }
+
+    public function testHydrateArrayShallowWithJoinAndAggregate()
+    {
+        $q = Doctrine_Query::create();
+        $q->select("u.id, UPPER(u.name) nameUpper, p.id as phonenumber_id, p.phonenumber, p.entity_id")
+            ->from("User u")
+            ->innerJoin("u.Phonenumber p");
+
+        $res = $q->execute(array(), Doctrine_Core::HYDRATE_ARRAY_SHALLOW);
+
+        $this->assertTrue(is_array($res));
+        $this->assertEqual(2, count($res));
+
+        //row1
+        $this->assertEqual(1, $res[0]['id']);
+        $this->assertEqual('ROMANB', $res[0]['nameUpper']);
+        $this->assertEqual(1, $res[0]['id']);
+        $this->assertEqual(112, $res[0]['phonenumber']);
+        $this->assertEqual(1, $res[0]['entity_id']);
+        //row2
+        $this->assertEqual(1, $res[1]['id']);
+        $this->assertEqual('ROMANB', $res[1]['nameUpper']);
+        $this->assertEqual(2, $res[1]['phonenumber_id']);
+        $this->assertEqual(110, $res[1]['phonenumber']);
+        $this->assertEqual(1, $res[1]['entity_id']);
+
+        $q->free();
+    }
 }

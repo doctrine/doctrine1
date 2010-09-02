@@ -1519,8 +1519,10 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
 
             $part = str_replace(array('"', "'", '`'), "", $part);
 
-            if ($this->hasSqlTableAlias($part)) {
-                $parts[$k] = $this->_conn->quoteIdentifier($this->generateNewSqlTableAlias($part));
+            // Fix DC-645, Table aliases ending with ')' where not replaced properly
+            preg_match('/^(\(?)(.*?)(\)?)$/', $part, $matches);
+            if ($this->hasSqlTableAlias($matches[2])) {
+                $parts[$k] = $matches[1].$this->_conn->quoteIdentifier($this->generateNewSqlTableAlias($matches[2])).$matches[3];
                 continue;
             }
 

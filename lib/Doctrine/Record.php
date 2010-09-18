@@ -1537,7 +1537,7 @@ abstract class Doctrine_Record extends Doctrine_Record_Abstract implements Count
             return true;
         }
 
-        if (($old === null || $old instanceof Doctrine_Null) && ($new == null || $new instanceof Doctrine_Null)) {
+        if (($old === null || $old instanceof Doctrine_Null) && ($new === null || $new instanceof Doctrine_Null)) {
             return false;
         }
 

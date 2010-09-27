@@ -43,10 +43,10 @@ final class Doctrine_Null implements Countable
     public function __toString()
     {
         return '';
-	}
+    }
 
-	public function count()
-	{
-		return 0;
+    public function count()
+    {
+        return 0;
     }
 }

@@ -33,7 +33,7 @@
  * @version     $Revision: 7490 $
  * @author      Konsta Vesterinen <kvesteri@cc.hut.fi>
  */
-final class Doctrine_Null
+final class Doctrine_Null implements Countable
 { 
     public function exists()
     {
@@ -43,5 +43,10 @@ final class Doctrine_Null
     public function __toString()
     {
         return '';
+	}
+
+	public function count()
+	{
+		return 0;
     }
 }

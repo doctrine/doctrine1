@@ -89,7 +89,7 @@ class Doctrine_Query_Where extends Doctrine_Query_Condition
                     $column = $table->getColumnName($fieldname);
                     $columndef = $table->getColumnDefinition($column);
 
-                    if ($columndef['type'] == 'string' && ($columndef['length'] == NULL || $columndef['length'] > $conn->varchar_max_length)) {
+                    if ($columndef['type'] == 'string' && ($columndef['length'] == NULL || $columndef['length'] > $conn->varchar_max_length) && strtoupper($rightExpr) != 'NULL') {
                         $operator = 'LIKE';
                     }
                 }

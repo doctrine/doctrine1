@@ -125,7 +125,8 @@ class DoctrineTest
 
         //show help text
         if (isset($options['help'])) {
-            $availableGroups = sort(array_keys($this->groups));	
+            $availableGroups = array_keys($this->groups);
+            sort($availableGroups);
 	
             echo "Doctrine test runner help\n";
             echo "===========================\n";

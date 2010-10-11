@@ -1,0 +1,3 @@
+755Test:
+  columns:
+    test_col: {type: string(25)}

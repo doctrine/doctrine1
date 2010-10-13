@@ -152,6 +152,7 @@ abstract class Doctrine_Record_Generator extends Doctrine_Record_Abstract
 
         $ownerClassName = $this->_options['table']->getComponentName();
         $className = $this->_options['className'];
+        $ownerClassName = str_replace('_', '', $ownerClassName); // balupton: fixes pear style models Bal_Something
         $this->_options['className'] = str_replace('%CLASS%', $ownerClassName, $className);
 
         if (isset($this->_options['tableName'])) {
@@ -280,14 +281,14 @@ abstract class Doctrine_Record_Generator extends Doctrine_Record_Abstract
     {
         $fk = array();
 
-        foreach ((array) $table->getIdentifier() as $field) {
-            $def = $table->getDefinitionOf($field);
+        foreach ((array) $table->getIdentifier() as $column) {
+            $def = $table->getDefinitionOf($column);
 
             unset($def['autoincrement']);
             unset($def['sequence']);
             unset($def['primary']);
 
-            $col = $table->hasColumn($field) ? $field : $table->getColumnName($field) . ' as ' . $field;
+            $col = $column;
 
             $def['primary'] = true;
             $fk[$col] = $def;
@@ -431,7 +432,7 @@ abstract class Doctrine_Record_Generator extends Doctrine_Record_Abstract
         $definition['columns'] = $table->getColumns();
         $definition['tableName'] = $table->getTableName();
         $definition['actAs'] = $table->getTemplates();
-
+      
         return $this->generateClass($definition);
     }
 

@@ -478,8 +478,15 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
             // only auto-add the primary key fields if this query object is not
             // a subquery of another query object or we're using a child of the Object Graph
             // hydrator
+            //
+            // github.com/estahn: You can't just do an array_unique because there could
+            // possibly be fields with the same name and a different alias.
+            // e.g t.username as foo, t.username as foo2 
             if ( ! $this->_isSubquery && is_subclass_of($driverClassName, 'Doctrine_Hydrator_Graph')) {
-                $fields = array_unique(array_merge((array) $table->getIdentifier(), $fields));
+                $identifier = (array) $table->getIdentifier();
+                $missingFields = array_diff($identifier, $fields);
+                $fields = array_merge($fields, $missingFields);
+                asort($fields); // This is not necessary but will help to let some test cases untouched/pass.
             }
         }
 
@@ -660,12 +667,6 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
                 $this->_queryComponents[$componentAlias]['agg'][$index] = $alias;
 
                 $this->_neededTables[] = $tableAlias;
-
-                // Fix for http://www.doctrine-project.org/jira/browse/DC-585
-                // Add selected columns to pending fields
-                if (preg_match('/^([^\(]+)\.(\'?)(.*?)(\'?)$/', $expression, $field)) {
-                    $this->_pendingFields[$componentAlias][$alias] = $field[3];
-                }
 
             } else {
                 $e = explode('.', $terms[0]);

@@ -52,7 +52,7 @@ class Doctrine_Ticket_1257_TestCase extends Doctrine_UnitTestCase
                 ->from('Ticket_1257_User u')
                 ->leftJoin('u.Role r')
                 ->addSelect('r.id, r.name, r.description');
-        $this->assertEqual($q->getSqlQuery(), 'SELECT t.id AS t__id, t.username AS t__username, t2.id AS t2__id, t2.name AS t2__name, t2.description AS t2__description FROM ticket_1257__user t LEFT JOIN ticket_1257__role t2 ON t.role_id = t2.id');
+        $this->assertEqual($q->getSqlQuery(), 'SELECT t.id AS t__id, t.username AS t__username, t2.description AS t2__description, t2.id AS t2__id, t2.name AS t2__name FROM ticket_1257__user t LEFT JOIN ticket_1257__role t2 ON t.role_id = t2.id');
         $results = $q->fetchArray();
         $this->assertEqual($results[0]['Role']['name'], 'Developer');
     }

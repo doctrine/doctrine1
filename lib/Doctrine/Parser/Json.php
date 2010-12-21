@@ -62,7 +62,7 @@ class Doctrine_Parser_Json extends Doctrine_Parser
     {
         $contents = $this->doLoad($path);
         
-        $json = json_decode($contents);
+        $json = json_decode($contents, true);
         
         return $json;
     }

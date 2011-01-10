@@ -125,6 +125,10 @@ class Doctrine_Export_Schema
                     $table['relations'][$relationKey]['type'] = 'one';
                 }
             }
+
+            if ( isset( $data['options']['indexes'] ) ) {
+                $table['indexes'] = $data['options']['indexes'];
+            }
             
             if ( isset( $data['options'] ) ) {
                 $options_to_export = array( 'charset', 'collate', 'queryParts' );

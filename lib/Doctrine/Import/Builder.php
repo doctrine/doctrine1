@@ -964,6 +964,9 @@ class Doctrine_Import_Builder extends Doctrine_Builder
         $className = $definition['className'];
         $extends = isset($definition['inheritance']['extends']) ? $definition['inheritance']['extends']:$this->_baseClassName;
 
+        if ( ! isset($definition['options']['comment']) && isset($definition['comment']))
+          $definition['options']['comment'] = $definition['comment'];
+
         if ( ! (isset($definition['no_definition']) && $definition['no_definition'] === true)) {
             $tableDefinitionCode = $this->buildTableDefinition($definition);
             $setUpCode = $this->buildSetUp($definition);

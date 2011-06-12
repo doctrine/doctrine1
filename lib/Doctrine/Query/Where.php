@@ -99,7 +99,7 @@ class Doctrine_Query_Where extends Doctrine_Query_Condition
 
             return $sql;
         } else {
-            return $where;
+            return $this->query->parseClause($where);
         }
     }
 

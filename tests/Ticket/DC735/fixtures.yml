@@ -1,0 +1,3 @@
+Doctrine_Ticket_DC735_User:
+  User_1:
+    Doctrine_Ticket_DC735_Country: { name: Country_1 }

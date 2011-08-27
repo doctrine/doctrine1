@@ -473,7 +473,7 @@ class Doctrine_Table extends Doctrine_Configurable implements Countable
 
                         $e2 = explode(':', $option);
 
-                        switch (strtolower($e2[0])) {
+                        switch (mb_strtolower($e2[0], "UTF-8")) {
                             case 'autoincrement':
                             case 'autoinc':
                                 if ($value !== false) {
@@ -1164,7 +1164,7 @@ class Doctrine_Table extends Doctrine_Configurable implements Countable
             return $this->_columnNames[$fieldName];
         }
 
-        return strtolower($fieldName);
+        return mb_strtolower($fieldName, "UTF-8");
     }
 
     /**
@@ -1313,12 +1313,11 @@ class Doctrine_Table extends Doctrine_Configurable implements Countable
                 $fieldName = $parts[0];
             }
 
-            $name = strtolower($parts[0]);
+            $name = mb_strtolower($parts[0], "UTF-8");
         } else {
             $fieldName = $name;
-            $name = strtolower($name);
+            $name = mb_strtolower($name, "UTF-8");
         }
-
         $name = trim($name);
         $fieldName = trim($fieldName);
 
@@ -1375,7 +1374,7 @@ class Doctrine_Table extends Doctrine_Configurable implements Countable
         $options['type'] = $type;
         $options['length'] = $length;
         
-        if (strtolower($fieldName) != $name) {
+        if (mb_strtolower($fieldName, "UTF-8") != $name) {
             $options['alias'] = $fieldName;
         }
 
@@ -1461,7 +1460,7 @@ class Doctrine_Table extends Doctrine_Configurable implements Countable
      */
     public function hasColumn($columnName)
     {
-        return isset($this->_columns[strtolower($columnName)]);
+        return isset($this->_columns[mb_strtolower($columnName, "UTF-8")]);
     }
 
     /**
@@ -2809,7 +2808,7 @@ class Doctrine_Table extends Doctrine_Configurable implements Countable
      */
     public function __call($method, $arguments)
     {
-        $lcMethod = strtolower($method);
+        $lcMethod = mb_strtolower($method, "UTF-8");
 
         if (substr($lcMethod, 0, 6) == 'findby') {
             $by = substr($method, 6, strlen($method));

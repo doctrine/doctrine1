@@ -506,7 +506,7 @@ END;';
         if ( ! empty($changes['change']) && is_array($changes['change'])) {
             $fields = array();
             foreach ($changes['change'] as $fieldName => $field) {
-                $fields[] = $fieldName. ' ' . $this->getDeclaration('', $field['definition']);
+                $fields[] = $this->getDeclaration($fieldName, $field['definition']);
             }
             $result = $this->conn->exec('ALTER TABLE ' . $name . ' MODIFY (' . implode(', ', $fields) . ')');
         }

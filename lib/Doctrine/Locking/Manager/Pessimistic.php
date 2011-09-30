@@ -41,12 +41,12 @@ class Doctrine_Locking_Manager_Pessimistic
      *
      * @var Doctrine_Connection object
      */
-    private $conn;
+    protected $conn;
 
     /**
      * The database table name for the lock tracking
      */
-    private $_lockTable = 'doctrine_lock_tracking';
+    protected $_lockTable = 'doctrine_lock_tracking';
 
     /**
      * Constructs a new locking manager object
@@ -95,7 +95,7 @@ class Doctrine_Locking_Manager_Pessimistic
      * @param Doctrine_Record $record
      * @return mixed
      */
-    private function _getRecordIdentifier(Doctrine_Record $record)
+    protected function _getRecordIdentifier(Doctrine_Record $record)
     {
         $keyName = $record->getTable()->getIdentifier();
         $key = null;
@@ -222,7 +222,7 @@ class Doctrine_Locking_Manager_Pessimistic
      * @return string              The unique user identifier for the specified lock
      * @throws Doctrine_Locking_Exception If the query failed due to database errors
      */
-    private function _getLockingUserIdent($objectType, $key)
+    protected function _getLockingUserIdent($objectType, $key)
     {
         if (is_array($key)) {
             // Composite key

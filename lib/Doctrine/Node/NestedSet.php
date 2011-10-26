@@ -608,11 +608,10 @@ class Doctrine_Node_NestedSet extends Doctrine_Node implements Doctrine_Node_Int
 
             // Set new root id for this node
             $this->setRootValue($newRoot);
-            $this->record->save();
-
             // Insert this node as a new node
             $this->setRightValue(0);
             $this->setLeftValue(0);
+            $this->record->save();
 
             switch ($moveType) {
                 case 'moveAsPrevSiblingOf':

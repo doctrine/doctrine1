@@ -664,6 +664,15 @@ class Doctrine_Table extends Doctrine_Configurable implements Countable
                         $definition['default'] = $this->getConnection()->convertBooleans($definition['default']);
                     }
                     break;
+                case 'timestamp':
+                    $newDefinition = array();
+                    foreach($definition as $thisKey => $thisValue) {
+                        if(in_array($thisKey, array('type', 'length'))) {
+                            $newDefinition[$thisKey] = $thisValue;
+                        }
+                    }
+                    $definition = $newDefinition;
+                    break;
             }
             $columns[$name] = $definition;
 

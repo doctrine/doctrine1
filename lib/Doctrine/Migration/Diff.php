@@ -210,9 +210,22 @@ class Doctrine_Migration_Diff
                 if (isset($from[$className]) && ! isset($from[$className]['columns'][$name])) {
                     $this->_changes['created_columns'][$info['tableName']][$name] = $column;
                 }
+                
                 // If column exists in the from schema information but is not the same then it is a changed column
-                if (isset($from[$className]['columns'][$name]) && $from[$className]['columns'][$name] != $column) {
-                    $this->_changes['changed_columns'][$info['tableName']][$name] = $column;
+                if (isset($from[$className]['columns'][$name])) {
+                    // When from is a database, Doctrine is setting strings as having an unsigned property.
+                    // At runtime, this causes a validator to check the string value which throws an exception
+                    // because strings arent numeric.
+                    $fromColumnValue = $from[$className]['columns'][$name];
+                    if($fromColumnValue['type'] == 'string' && isset($fromColumnValue['unsigned'])) {
+                        unset($fromColumnValue['unsigned']);
+                    }
+                    if($column['type'] == 'string' && isset($column['unsigned'])) {
+                        unset($column['unsigned']);
+                    }
+                    if($fromColumnValue != $column) {
+                        $this->_changes['changed_columns'][$info['tableName']][$name] = $column;
+                    }
                 }
             }
             // Check for new foreign keys
@@ -327,7 +340,11 @@ class Doctrine_Migration_Diff
                 Doctrine_Inflector::tableize(self::$_toPrefix),
                 Doctrine_Inflector::tableize(self::$_fromPrefix)
             );
-            return str_replace($find, null, $info);
+            if($info === true || $info === false) {
+                $info = intval($info);
+            }
+            $replaced = str_replace($find, null, $info);
+            return $replaced;
         }
     }
 

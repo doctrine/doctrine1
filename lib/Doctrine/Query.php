@@ -1042,6 +1042,12 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
                     // apply inheritance to WHERE part
                     if ( ! empty($where)) {
                         if (count($this->_sqlParts['where']) > 0) {
+                            // Put the current WHERE expression in parentheses to work around precedence bug
+                            // in combination with pending joins:
+                            // http://www.doctrine-project.org/jira/browse/DC-944
+                            array_unshift($this->_sqlParts['where'], '(');
+                            $this->_sqlParts['where'][] = ')';
+
                             $this->_sqlParts['where'][] = 'AND';
                         }
 
@@ -1075,6 +1081,17 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
 
                 if ( ! $ignorePending && isset($this->_pendingJoinConditions[$k])) {
                     if (strpos($part, ' ON ') !== false) {
+                        // Put the current ON expression in parentheses to work around precedence bug
+                        // in combination with pending joins:
+                        // http://www.doctrine-project.org/jira/browse/DC-944
+                        //
+                        // $part is for instance:
+                        // LEFT JOIN `appointment_invitations` `a2` ON `a`.`id` = `a2`.`appointment_id`
+                        // Modify it to:
+                        // LEFT JOIN `appointment_invitations` `a2` ON (`a`.`id` = `a2`.`appointment_id`)
+                        $onpos = strrpos($part, ' ON ');
+                        $part = substr($part, 0, $onpos) . ' ON ( ' . substr($part, $onpos + 4) . ' )';
+
                         $part .= ' AND ';
                     } else {
                         $part .= ' ON ';

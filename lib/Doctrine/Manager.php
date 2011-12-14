@@ -757,7 +757,7 @@ class Doctrine_Manager extends Doctrine_Configurable implements Countable, Itera
     /**
      * Register validators so that Doctrine is aware of them
      *
-     * @param  mixed $validators Name of validator or array of validators
+     * @param  mixed $validators Name of validator or array of validators
      * @return void
      */
     public function registerValidators($validators)

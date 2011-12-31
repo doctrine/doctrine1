@@ -111,7 +111,10 @@ class Doctrine_Migration_Diff
     {
         $this->_cleanup();
 
-        $from = $this->_generateModels(self::$_fromPrefix, $this->_from);
+        $from = $this->_generateModels(
+            Doctrine_Manager::getInstance()->getAttribute(Doctrine_Core::ATTR_MODEL_CLASS_PREFIX) . self::$_fromPrefix,
+            $this->_from
+        );
         $to = $this->_generateModels(
             Doctrine_Manager::getInstance()->getAttribute(Doctrine_Core::ATTR_MODEL_CLASS_PREFIX) . self::$_toPrefix,
             $this->_to
@@ -135,7 +138,7 @@ class Doctrine_Migration_Diff
     /**
      * Initialize some Doctrine models at a given path.
      *
-     * @param string $path 
+     * @param string $path
      * @return array $models
      */
     protected function _initializeModels($path)

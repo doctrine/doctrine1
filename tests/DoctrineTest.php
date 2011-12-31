@@ -50,9 +50,9 @@ class DoctrineTest
     }
 
     /**
-     * Add a test to be run. 
+     * Add a test to be run.
      *
-     * This is a thin wrapper around GroupTest that also store the testcase in 
+     * This is a thin wrapper around GroupTest that also store the testcase in
      * this class so that it is easier to create custom groups
      *
      * @param UnitTestCase A test case
@@ -66,9 +66,9 @@ class DoctrineTest
     /**
      * Run the tests
      *
-     * This method will run the tests with the correct Reporter. It will run 
-     * grouped tests if asked to and filter results. It also has support for 
-     * running coverage report. 
+     * This method will run the tests with the correct Reporter. It will run
+     * grouped tests if asked to and filter results. It also has support for
+     * running coverage report.
      *
      */
     public function run()
@@ -108,7 +108,7 @@ class DoctrineTest
                     die($group . " is not a valid group or doctrine test class\n ");
                 }
             }
-        } 
+        }
 
         if (isset($options['ticket'])) {
             $testGroup = new GroupTest('Doctrine Custom Test', 'custom');
@@ -125,15 +125,16 @@ class DoctrineTest
 
         //show help text
         if (isset($options['help'])) {
-            $availableGroups = sort(array_keys($this->groups));	
-	
+            $availableGroups = array_keys($this->groups);
+            sort($availableGroups);
+
             echo "Doctrine test runner help\n";
             echo "===========================\n";
             echo " To run all tests simply run this script without arguments. \n";
             echo "\n Flags:\n";
             echo " -coverage will generate coverage report data that can be viewed with the cc.php script in this folder. NB! This takes time. You need xdebug to run this\n";
             echo " -group <groupName1> <groupName2> <className1> Use this option to run just a group of tests or tests with a given classname. Groups are currently defined as the variable name they are called in this script.\n";
-            echo " -filter <string1> <string2> case insensitive strings that will be applied to the className of the tests. A test_classname must contain all of these strings to be run\n"; 
+            echo " -filter <string1> <string2> case insensitive strings that will be applied to the className of the tests. A test_classname must contain all of these strings to be run\n";
             echo "\nAvailable groups:\n " . implode(', ', $availableGroups) . "\n";
 
             die();
@@ -143,8 +144,8 @@ class DoctrineTest
         if (isset($options['coverage'])) {
 
             /*
-             * The below code will not work for me (meus). It would be nice if 
-             * somebody could give it a try. Just replace this block of code 
+             * The below code will not work for me (meus). It would be nice if
+             * somebody could give it a try. Just replace this block of code
              * with the one below
              *
              define('PHPCOVERAGE_HOME', dirname(dirname(__FILE__)) . '/vendor/spikephpcoverage');
@@ -231,11 +232,11 @@ class DoctrineTest
                 $currentName = $name;
 
                 if ( ! isset($options[$currentName])) {
-                    $options[$currentName] = array();         
+                    $options[$currentName] = array();
                 }
             } else {
                 $values = $options[$currentName];
-                array_push($values, $name);    
+                array_push($values, $name);
                 $options[$currentName] = $values;
             }
         }
@@ -248,8 +249,8 @@ class DoctrineTest
      *
      * Will create test case if it does not exist
      *
-     * @param string $class The name of the class to autoload 
-     * @return boolean True 
+     * @param string $class The name of the class to autoload
+     * @return boolean True
      */
     public static function autoload($class)
     {

@@ -1645,8 +1645,11 @@ class Doctrine_Table extends Doctrine_Configurable implements Countable
      */
     public function findAll($hydrationMode = null)
     {
-        return $this->createQuery('dctrn_find')
-            ->execute(array(), $hydrationMode);
+        $q = $this->createQuery('dctrn_find');
+        $r = $q->execute(array(), $hydrationMode);
+        $q->free();
+
+        return $r;
     }
 
     /**
@@ -1692,9 +1695,12 @@ class Doctrine_Table extends Doctrine_Configurable implements Countable
      */
     public function findBy($fieldName, $value, $hydrationMode = null)
     {
-        return $this->createQuery('dctrn_find')
-            ->where($this->buildFindByWhere($fieldName), (array) $value)
-            ->execute(array(), $hydrationMode);
+        $q = $this->createQuery('dctrn_find')
+            ->where($this->buildFindByWhere($fieldName), (array) $value);
+        $r = $q->execute(array(), $hydrationMode);
+        $q->free();
+
+        return $r;
     }
 
     /**
@@ -1707,10 +1713,13 @@ class Doctrine_Table extends Doctrine_Configurable implements Countable
      */
     public function findOneBy($fieldName, $value, $hydrationMode = null)
     {
-        return $this->createQuery('dctrn_find')
+        $q = $this->createQuery('dctrn_find')
             ->where($this->buildFindByWhere($fieldName), (array) $value)
-            ->limit(1)
-            ->fetchOne(array(), $hydrationMode);
+            ->limit(1);
+        $r = $q->fetchOne(array(), $hydrationMode);
+        $q->free();
+
+        return $r;
     }
 
     /**
@@ -1942,6 +1951,7 @@ class Doctrine_Table extends Doctrine_Configurable implements Countable
             $i = implode(' AND ', $a);
             $where .= ' AND ' . $i;
         }
+
         return $where;
     }
 
@@ -1952,7 +1962,11 @@ class Doctrine_Table extends Doctrine_Configurable implements Countable
      */
     public function count()
     {
-        return $this->createQuery()->count();
+        $q = $this->createQuery();
+        $c = $q->count();
+        $q->free();
+
+        return $c;
     }
 
     /**
@@ -1962,6 +1976,7 @@ class Doctrine_Table extends Doctrine_Configurable implements Countable
     {
         $graph = $this->createQuery();
         $graph->load($this->getComponentName());
+
         return $graph;
     }
 

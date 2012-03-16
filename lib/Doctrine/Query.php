@@ -274,7 +274,7 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
      *
      * @param string $params        Query parameters
      * @param int $hydrationMode    Hydration mode: see Doctrine_Core::HYDRATE_* constants
-     * @return mixed                Array or Doctrine_Collection, depending on hydration mode. False if no result.
+     * @return array|Doctrine_Record      Array or Doctrine_Record, depending on hydration mode. False if no result.
      */
     public function fetchOne($params = array(), $hydrationMode = null)
     {

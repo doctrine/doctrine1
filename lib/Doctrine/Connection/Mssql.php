@@ -97,145 +97,63 @@ class Doctrine_Connection_Mssql extends Doctrine_Connection_Common
             return implode('.', $quotedParts); 
         }
         
-        return '[' . str_replace(']', ']]', $identifier) . ']';
+        return '[' . trim($identifier, '[]') . ']';
     }
 
     /**
      * Adds an adapter-specific LIMIT clause to the SELECT statement.
-     * [ original code borrowed from Zend Framework ]
-     *
-     * License available at: http://framework.zend.com/license
-     *
-     * Copyright (c) 2005-2008, Zend Technologies USA, Inc.
-     * All rights reserved.
-     * 
-     * Redistribution and use in source and binary forms, with or without modification,
-     * are permitted provided that the following conditions are met:
-     * 
-     *     * Redistributions of source code must retain the above copyright notice,
-     *       this list of conditions and the following disclaimer.
-     * 
-     *     * Redistributions in binary form must reproduce the above copyright notice,
-     *       this list of conditions and the following disclaimer in the documentation
-     *       and/or other materials provided with the distribution.
-     * 
-     *     * Neither the name of Zend Technologies USA, Inc. nor the names of its
-     *       contributors may be used to endorse or promote products derived from this
-     *       software without specific prior written permission.
-     * 
-     * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-     * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-     * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-     * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
-     * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-     * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-     * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
-     * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-     * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-     * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+     * Inspired by Doctrine2 DBAL
      *
      * @param string $query
      * @param mixed $limit
      * @param mixed $offset
-     * @link http://lists.bestpractical.com/pipermail/rt-devel/2005-June/007339.html
+     * @link https://github.com/doctrine/dbal/blob/master/lib/Doctrine/DBAL/Platforms/MsSqlPlatform.php#L607
+     * @link http://www.toosweettobesour.com/2010/09/16/doctrine-1-2-mssql-alternative-limitpaging/
      * @return string
      */
-    public function modifyLimitQuery($query, $limit = false, $offset = false, $isManip = false, $isSubQuery = false, Doctrine_Query $queryOrigin = null)
+    public function modifyLimitQuery($query, $limit = false, $offset = false, $isManip = false)
     {
-        if ($limit === false || !($limit > 0)) {
-            return $query; 
-        }
+        if ($limit > 0) {
+            $limit = intval($limit);
+            $offset = intval($offset);
 
-        $orderby = stristr($query, 'ORDER BY');
-
-        if ($offset !== false && $orderby === false) {
-            throw new Doctrine_Connection_Exception("OFFSET cannot be used in MSSQL without ORDER BY due to emulation reasons.");
-        }
-        
-        $count = intval($limit);
-        $offset = intval($offset);
-
-        if ($offset < 0) {
-            throw new Doctrine_Connection_Exception("LIMIT argument offset=$offset is not valid");
-        }
-
-        $orderbySql = $queryOrigin->getSqlQueryPart('orderby');
-        $orderbyDql = $queryOrigin->getDqlPart('orderby');
-
-        if ($orderby !== false) {
-            $orders = $this->parseOrderBy(implode(', ', $queryOrigin->getDqlPart('orderby')));
-
-            for ($i = 0; $i < count($orders); $i++) {
-                $sorts[$i] = (stripos($orders[$i], ' desc') !== false) ? 'DESC' : 'ASC';
-                $orders[$i] = trim(preg_replace('/\s+(ASC|DESC)$/i', '', $orders[$i]));
-
-                list($fieldAliases[$i], $fields[$i]) = strstr($orders[$i], '.') ? explode('.', $orders[$i]) : array('', $orders[$i]);
-                $columnAlias[$i] = $queryOrigin->getSqlTableAlias($queryOrigin->getExpressionOwner($orders[$i]));
-
-                $cmp = $queryOrigin->getQueryComponent($queryOrigin->getExpressionOwner($orders[$i]));
-                $tables[$i] = $cmp['table'];
-                $columns[$i] = $cmp['table']->getColumnName($fields[$i]);
-
-                // TODO: This sould be refactored as method called Doctrine_Table::getColumnAlias(<column name>).
-                $aliases[$i] = $columnAlias[$i] . '__' . $columns[$i];
+            if ($offset < 0) {
+                throw new Doctrine_Connection_Exception("LIMIT argument offset=$offset is not valid");
             }
-        }
 
-        // Ticket #1259: Fix for limit-subquery in MSSQL
-        $selectRegExp = 'SELECT\s+';
-        $selectReplace = 'SELECT ';
+            if ($offset == 0) {
+                $query = preg_replace('/^SELECT\s/i', 'SELECT TOP ' . $limit . ' ', $query);
+            } else {
 
-        if (preg_match('/^SELECT(\s+)DISTINCT/i', $query)) {
-            $selectRegExp .= 'DISTINCT\s+';
-            $selectReplace .= 'DISTINCT ';
-        }
+                $over = stristr($query, 'ORDER BY');
 
-        $fields_string = substr($query, strlen($selectReplace), strpos($query, ' FROM ') - strlen($selectReplace));
-        $field_array = explode(',', $fields_string);
-        $field_array = array_shift($field_array);
-        $aux2 = preg_split('/ as /i', $field_array);
-        $aux2 = explode('.', end($aux2));
-        $key_field = trim(end($aux2));
-
-        $query = preg_replace('/^'.$selectRegExp.'/i', $selectReplace . 'TOP ' . ($count + $offset) . ' ', $query);
-
-        if ($isSubQuery === true) {
-            $query = 'SELECT TOP ' . $count . ' ' . $this->quoteIdentifier('inner_tbl') . '.' . $key_field . ' FROM (' . $query . ') AS ' . $this->quoteIdentifier('inner_tbl');
-        } else {
-            $query = 'SELECT * FROM (SELECT TOP ' . $count . ' * FROM (' . $query . ') AS ' . $this->quoteIdentifier('inner_tbl');
-        }
-
-        if ($orderby !== false) {
-            $query .= ' ORDER BY '; 
-
-            for ($i = 0, $l = count($orders); $i < $l; $i++) { 
-                if ($i > 0) { // not first order clause 
-                    $query .= ', '; 
-                } 
-
-                $query .= $this->modifyOrderByColumn($tables[$i], $columns[$i], $this->quoteIdentifier('inner_tbl') . '.' . $this->quoteIdentifier($aliases[$i])) . ' '; 
-                $query .= (stripos($sorts[$i], 'asc') !== false) ? 'DESC' : 'ASC';
-            }
-        }
-
-        if ($isSubQuery !== true) {
-            $query .= ') AS ' . $this->quoteIdentifier('outer_tbl');
-
-            if ($orderby !== false) {
-                $query .= ' ORDER BY ';
-
-                for ($i = 0, $l = count($orders); $i < $l; $i++) {
-                    if ($i > 0) { // not first order clause
-                        $query .= ', ';
-                    }
-
-                    $query .= $this->modifyOrderByColumn($tables[$i], $columns[$i], $this->quoteIdentifier('outer_tbl') . '.' . $this->quoteIdentifier($aliases[$i])) . ' ' . $sorts[$i];
+                if (!$over) {
+                    $over = 'ORDER BY (SELECT 0)';
+                } else {
+                    // Remove ORDER BY clause from $query
+                    $query = stristr($query, 'ORDER BY', true);
                 }
+
+                // Remove the first SELECT from query
+                $query = substr($query, strlen('SELECT '));
+                $select = 'SELECT';
+
+                if (0 === strpos($query, 'DISTINCT'))
+                {
+                  $query = substr($query, strlen('DISTINCT '));
+                  $select .= ' DISTINCT';
+                }
+
+                $start = $offset + 1;
+                $end = $offset + $limit;
+
+                $query = "SELECT * FROM ($select ROW_NUMBER() OVER ($over) AS [DOCTRINE_ROWNUM], $query) AS [doctrine_tbl] WHERE [DOCTRINE_ROWNUM] BETWEEN $start AND $end";
             }
         }
 
         return $query;
     }
+
 
     /**
      * Parse an OrderBy-Statement into chunks 
@@ -398,18 +316,17 @@ class Doctrine_Connection_Mssql extends Doctrine_Connection_Common
      * @param string $query
      * @param array $params
      */
-    protected function replaceBoundParamsWithInlineValuesInQuery($query, array $params) {
-
+    protected function replaceBoundParamsWithInlineValuesInQuery($query, array $params)
+    {
         foreach($params as $key => $value) {
             $re = '/(?<=WHERE|VALUES|SET|JOIN)(.*?)(\?)/';
             $query = preg_replace($re, "\\1##{$key}##", $query, 1);
         }
-        
-        $replacement = 'is_null($value) ? \'NULL\' : $this->quote($params[\\1])';
+
+        $replacement = 'is_null($params[\\1]) ? \'NULL\' : $this->quote($params[\\1])';
         $query = preg_replace('/##(\d+)##/e', $replacement, $query);
 
         return $query;
-
     }
 
     /**

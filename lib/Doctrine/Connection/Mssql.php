@@ -86,17 +86,17 @@ class Doctrine_Connection_Mssql extends Doctrine_Connection_Common
         if ($checkOption && ! $this->getAttribute(Doctrine_Core::ATTR_QUOTE_IDENTIFIER)) {
             return $identifier;
         }
-        
-        if (strpos($identifier, '.') !== false) { 
-            $parts = explode('.', $identifier); 
-            $quotedParts = array(); 
-            foreach ($parts as $p) { 
-                $quotedParts[] = $this->quoteIdentifier($p); 
+
+        if (strpos($identifier, '.') !== false) {
+            $parts = explode('.', $identifier);
+            $quotedParts = array();
+            foreach ($parts as $p) {
+                $quotedParts[] = $this->quoteIdentifier($p);
             }
-            
-            return implode('.', $quotedParts); 
+
+            return implode('.', $quotedParts);
         }
-        
+
         return '[' . trim($identifier, '[]') . ']';
     }
 
@@ -107,48 +107,58 @@ class Doctrine_Connection_Mssql extends Doctrine_Connection_Common
      * @param string $query
      * @param mixed $limit
      * @param mixed $offset
+     * @param boolean $isSubQuery
+     * @param Doctrine_Query $queryOrigin
      * @link https://github.com/doctrine/dbal/blob/master/lib/Doctrine/DBAL/Platforms/MsSqlPlatform.php#L607
      * @link http://www.toosweettobesour.com/2010/09/16/doctrine-1-2-mssql-alternative-limitpaging/
      * @return string
      */
-    public function modifyLimitQuery($query, $limit = false, $offset = false, $isManip = false)
+    public function modifyLimitQuery($query, $limit = false, $offset = false, $isManip = false, $isSubQuery = false, Doctrine_Query $queryOrigin = null)
     {
-        if ($limit > 0) {
-            $limit = intval($limit);
-            $offset = intval($offset);
+        if ($limit === false || !($limit > 0)) {
+            return $query;
+        }
 
-            if ($offset < 0) {
-                throw new Doctrine_Connection_Exception("LIMIT argument offset=$offset is not valid");
-            }
+        $orderby = stristr($query, 'ORDER BY');
 
-            if ($offset == 0) {
-                $query = preg_replace('/^SELECT\s/i', 'SELECT TOP ' . $limit . ' ', $query);
+        if ($offset !== false && $orderby === false) {
+            throw new Doctrine_Connection_Exception("OFFSET cannot be used in MSSQL without ORDER BY due to emulation reasons.");
+        }
+
+        $limit = intval($limit);
+        $offset = intval($offset);
+
+        if ($offset < 0) {
+            throw new Doctrine_Connection_Exception("LIMIT argument offset=$offset is not valid");
+        }
+
+        if ($offset == 0) {
+            $query = preg_replace('/^SELECT\s/i', 'SELECT TOP ' . $limit . ' ', $query);
+
+        } else {
+            $over = stristr($query, 'ORDER BY');
+
+            if (!$over) {
+                $over = 'ORDER BY (SELECT 0)';
             } else {
-
-                $over = stristr($query, 'ORDER BY');
-
-                if (!$over) {
-                    $over = 'ORDER BY (SELECT 0)';
-                } else {
-                    // Remove ORDER BY clause from $query
-                    $query = stristr($query, 'ORDER BY', true);
-                }
-
-                // Remove the first SELECT from query
-                $query = substr($query, strlen('SELECT '));
-                $select = 'SELECT';
-
-                if (0 === strpos($query, 'DISTINCT'))
-                {
-                  $query = substr($query, strlen('DISTINCT '));
-                  $select .= ' DISTINCT';
-                }
-
-                $start = $offset + 1;
-                $end = $offset + $limit;
-
-                $query = "SELECT * FROM ($select ROW_NUMBER() OVER ($over) AS [DOCTRINE_ROWNUM], $query) AS [doctrine_tbl] WHERE [DOCTRINE_ROWNUM] BETWEEN $start AND $end";
+                // Remove ORDER BY clause from $query
+                $query = stristr($query, 'ORDER BY', true);
             }
+
+            // Remove the first SELECT from query
+            $query = substr($query, strlen('SELECT '));
+            $select = 'SELECT';
+
+            if (0 === strpos($query, 'DISTINCT'))
+            {
+              $query = substr($query, strlen('DISTINCT '));
+              $select .= ' DISTINCT';
+            }
+
+            $start = $offset + 1;
+            $end = $offset + $limit;
+
+            $query = "SELECT * FROM ($select ROW_NUMBER() OVER ($over) AS [DOCTRINE_ROWNUM], $query) AS [doctrine_tbl] WHERE [DOCTRINE_ROWNUM] BETWEEN $start AND $end";
         }
 
         return $query;
@@ -156,8 +166,8 @@ class Doctrine_Connection_Mssql extends Doctrine_Connection_Common
 
 
     /**
-     * Parse an OrderBy-Statement into chunks 
-     * 
+     * Parse an OrderBy-Statement into chunks
+     *
      * @param string $orderby
      */
     private function parseOrderBy($orderby)
@@ -168,31 +178,31 @@ class Doctrine_Connection_Mssql extends Doctrine_Connection_Common
         $parsed  = str_ireplace('ORDER BY', '', $orderby);
 
         preg_match_all('/(\w+\(.+?\)\s+(ASC|DESC)),?/', $orderby, $matches);
-        
+
         $matchesWithExpressions = $matches[1];
 
         foreach ($matchesWithExpressions as $match) {
             $chunks[] = $match;
             $parsed = str_replace($match, '##' . (count($chunks) - 1) . '##', $parsed);
         }
-        
+
         $tokens = preg_split('/,/', $parsed);
-        
+
         for ($i = 0, $iMax = count($tokens); $i < $iMax; $i++) {
             $tokens[$i] = trim(preg_replace('/##(\d+)##/e', "\$chunks[\\1]", $tokens[$i]));
         }
 
         return $tokens;
     }
-    
+
     /**
      * Order and Group By are not possible on columns from type text.
-     * This method fix this issue by wrap the given term (column) into a CAST directive. 
-     * 
+     * This method fix this issue by wrap the given term (column) into a CAST directive.
+     *
      * @see DC-828
      * @param Doctrine_Table $table
      * @param string $field
-     * @param string $term The term which will changed if it's necessary, depending to the field type. 
+     * @param string $term The term which will changed if it's necessary, depending to the field type.
      * @return string
      */
     public function modifyOrderByColumn(Doctrine_Table $table, $field, $term)
@@ -202,7 +212,7 @@ class Doctrine_Connection_Mssql extends Doctrine_Connection_Common
         if ($def['type'] == 'string' && $def['length'] === NULL) {
             $term = 'CAST(' . $term . ' AS varchar(8000))';
         }
-        
+
         return $term;
     }
 
@@ -216,7 +226,7 @@ class Doctrine_Connection_Mssql extends Doctrine_Connection_Common
     {
         return $this->modifyLimitQuery($query, $limit, $offset, $isManip, true);
     }
-    
+
     /**
      * return version information about the server
      *

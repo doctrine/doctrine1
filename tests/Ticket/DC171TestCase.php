@@ -49,7 +49,7 @@ class Doctrine_Ticket_DC171_TestCase extends Doctrine_UnitTestCase
         $user->hardDelete();
         $user->free();
 
-        $user = Doctrine::getTable('Ticket_DC171_User')->find($id);
+        $user = Doctrine_Core::getTable('Ticket_DC171_User')->find($id);
         $this->assertFalse($user);
     }
 }

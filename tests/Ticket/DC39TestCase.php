@@ -63,15 +63,15 @@ class Doctrine_Ticket_DC39_TestCase extends Doctrine_UnitTestCase
     public function testOneToManyRelationsWithSynchronizeWithArray()
     {
     		// link group (id 2) with users (id 1,2)
-    		$group = Doctrine::getTable('Ticket_DC39_Group')->find(2);
+    		$group = Doctrine_Core::getTable('Ticket_DC39_Group')->find(2);
     		$group->synchronizeWithArray(array(
     			'Users' => array(1, 2)
     		));
     		$group->save();
 
     		// update the user-objects with real data from database
-    		$user1 = Doctrine::getTable('Ticket_DC39_User')->find(1);
-    		$user2 = Doctrine::getTable('Ticket_DC39_User')->find(2);
+    		$user1 = Doctrine_Core::getTable('Ticket_DC39_User')->find(1);
+    		$user2 = Doctrine_Core::getTable('Ticket_DC39_User')->find(2);
 
     		// compare the group_id (should be 2) with the group_id set through $group->synchronizeWithArray
     		$this->assertEqual($group->Users[0]->group_id, 2);

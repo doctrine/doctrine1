@@ -46,7 +46,7 @@ class Doctrine_Ticket_DC136_TestCase extends Doctrine_UnitTestCase
         $user->save();
         $id = $user->id;
 
-        $table = Doctrine::getTable('Ticket_DC136_User');
+        $table = Doctrine_Core::getTable('Ticket_DC136_User');
 
         $user1 = $table->find($id);
         $user1->username = 'jonwage';

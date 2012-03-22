@@ -63,7 +63,7 @@ class Doctrine_Ticket_DC300_TestCase extends Doctrine_UnitTestCase
 
     public function testRefTableEntriesOnManyToManyRelationsWithSynchronizeWithArray()
     {
-		$u1 = Doctrine::getTable('Ticket_DC300_User')->find(1);
+		$u1 = Doctrine_Core::getTable('Ticket_DC300_User')->find(1);
 
 		// update the groups user (id 1) is linked to
 		$u1->synchronizeWithArray(array(

@@ -34,7 +34,7 @@ class Doctrine_Ticket_DC141_TestCase extends Doctrine_UnitTestCase
 {
     public function testTest()
     {
-        $q = Doctrine::getTable('User')
+        $q = Doctrine_Core::getTable('User')
             ->createQuery('u')
             ->where('u.name LIKE :name OR u.email_id = :email_id', array(':email_id' => 2, ':name' => '%zYne%'));
         $users = $q->fetchArray();

@@ -48,7 +48,7 @@ class Doctrine_Ticket_DC879_TestCase extends Doctrine_UnitTestCase
 
     public function testWhere()
     {
-        Doctrine::getTable('Ticket_DC879_Model')
+        Doctrine_Core::getTable('Ticket_DC879_Model')
           ->createQuery('t')
           ->where('foo = DATE_PART("month", foo)')
           ->execute();

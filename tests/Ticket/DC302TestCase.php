@@ -111,7 +111,7 @@ class Doctrine_Ticket_DC302_TestCase extends Doctrine_UnitTestCase
         $profiler = new Doctrine_Connection_Profiler();
         $this->conn->addListener($profiler);
 
-		$role = Doctrine::getTable('Ticket_DC302_Role')->find(3);
+		$role = Doctrine_Core::getTable('Ticket_DC302_Role')->find(3);
 		$parents = $role->Parents->toArray();
         
         $this->assertEqual($parents[1]['Ticket_DC302_RoleReference'][0]['position'], 1);

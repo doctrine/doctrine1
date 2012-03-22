@@ -479,6 +479,11 @@ class Doctrine_Connection_Statement implements Doctrine_Adapter_Statement_Interf
      */
     public function setFetchMode($mode, $arg1 = null, $arg2 = null)
     {
-        return $this->_stmt->setFetchMode($mode, $arg1, $arg2);
+        // In PHP 5.3 PDO throws an Exception if the number of arguments exceeds 1 except for these three modes
+        if ($mode === Doctrine_Core::FETCH_COLUMN || $mode === Doctrine_Core::FETCH_FUNC || $mode === Doctrine_Core::FETCH_CLASS) {
+            return $this->_stmt->setFetchMode($mode, $arg1, $arg2);
+        } else {
+            return $this->_stmt->setFetchMode($mode);
+        }
     }
 }

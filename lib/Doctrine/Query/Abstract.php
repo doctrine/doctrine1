@@ -1013,8 +1013,7 @@ abstract class Doctrine_Query_Abstract
 
         $hydrationMode = $this->_hydrator->getHydrationMode();
 
-        if ($this->_resultCache && $this->_type == self::SELECT) {
-            $cacheDriver = $this->getResultCacheDriver();
+        if ($this->_resultCache && $this->_type == self::SELECT && false !== $cacheDriver = $this->getResultCacheDriver()) {
             $hash = $this->getResultCacheHash($params);
             $cached = ($this->_expireResultCache) ? false : $cacheDriver->fetch($hash);
 

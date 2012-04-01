@@ -223,6 +223,11 @@ class Doctrine_Table extends Doctrine_Configurable implements Countable
     protected $_invokedMethods = array();
 
     /**
+     * @var boolean $_useIdentityMap Use or not identyMap cache
+     */
+    protected $_useIdentityMap = true;
+
+    /**
      * @var Doctrine_Record $record             empty instance of the given model
      */
     protected $record;
@@ -270,7 +275,13 @@ class Doctrine_Table extends Doctrine_Configurable implements Countable
         }
 
         $this->_filters[]  = new Doctrine_Record_Filter_Standard();
-        $this->_repository = new Doctrine_Table_Repository($this);
+        if ($this->getAttribute(Doctrine_Core::ATTR_USE_TABLE_REPOSITORY)) {
+            $this->_repository = new Doctrine_Table_Repository($this);
+        } else {
+            $this->_repository = new Doctrine_Table_Repository_None($this);
+        }
+
+        $this->_useIdentityMap = $this->getAttribute(Doctrine_Core::ATTR_USE_TABLE_IDENTITY_MAP);
 
         $this->construct();
     }
@@ -1374,7 +1385,7 @@ class Doctrine_Table extends Doctrine_Configurable implements Countable
 
         $options['type'] = $type;
         $options['length'] = $length;
-        
+
         if (strtolower($fieldName) != $name) {
             $options['alias'] = $fieldName;
         }
@@ -1632,8 +1643,6 @@ class Doctrine_Table extends Doctrine_Configurable implements Countable
             $res = $q->fetchOne($params, $hydrationMode);
         }
 
-        $q->free();
-
         return $res;
     }
 
@@ -1645,11 +1654,7 @@ class Doctrine_Table extends Doctrine_Configurable implements Countable
      */
     public function findAll($hydrationMode = null)
     {
-        $q = $this->createQuery('dctrn_find');
-        $r = $q->execute(array(), $hydrationMode);
-        $q->free();
-
-        return $r;
+        return $this->createQuery('dctrn_find')->execute(array(), $hydrationMode);
     }
 
     /**
@@ -1695,12 +1700,9 @@ class Doctrine_Table extends Doctrine_Configurable implements Countable
      */
     public function findBy($fieldName, $value, $hydrationMode = null)
     {
-        $q = $this->createQuery('dctrn_find')
-            ->where($this->buildFindByWhere($fieldName), (array) $value);
-        $r = $q->execute(array(), $hydrationMode);
-        $q->free();
-
-        return $r;
+        return $this->createQuery('dctrn_find')
+            ->where($this->buildFindByWhere($fieldName), (array) $value)
+            ->execute(array(), $hydrationMode);
     }
 
     /**
@@ -1713,13 +1715,10 @@ class Doctrine_Table extends Doctrine_Configurable implements Countable
      */
     public function findOneBy($fieldName, $value, $hydrationMode = null)
     {
-        $q = $this->createQuery('dctrn_find')
+        return $this->createQuery('dctrn_find')
             ->where($this->buildFindByWhere($fieldName), (array) $value)
-            ->limit(1);
-        $r = $q->fetchOne(array(), $hydrationMode);
-        $q->free();
-
-        return $r;
+            ->limit(1)
+            ->fetchOne(array(), $hydrationMode);
     }
 
     /**
@@ -1781,6 +1780,10 @@ class Doctrine_Table extends Doctrine_Configurable implements Countable
      */
     public function addRecord(Doctrine_Record $record)
     {
+        if (!$this->_useIdentityMap) {
+            return false;
+        }
+
         $id = implode(' ', $record->identifier());
 
         if (isset($this->_identityMap[$id])) {
@@ -1804,6 +1807,10 @@ class Doctrine_Table extends Doctrine_Configurable implements Countable
      */
     public function removeRecord(Doctrine_Record $record)
     {
+        if (!$this->_useIdentityMap) {
+            return false;
+        }
+
         $id = implode(' ', $record->identifier());
 
         if (isset($this->_identityMap[$id])) {
@@ -1850,7 +1857,7 @@ class Doctrine_Table extends Doctrine_Configurable implements Countable
 
             $id = implode(' ', $id);
 
-            if (isset($this->_identityMap[$id])) {
+            if ($this->_useIdentityMap && isset($this->_identityMap[$id])) {
                 $record = $this->_identityMap[$id];
                 if ($record->getTable()->getAttribute(Doctrine_Core::ATTR_HYDRATE_OVERWRITE)) {
                     $record->hydrate($this->_data);
@@ -1865,7 +1872,10 @@ class Doctrine_Table extends Doctrine_Configurable implements Countable
             } else {
                 $recordName = $this->getComponentName();
                 $record = new $recordName($this);
-                $this->_identityMap[$id] = $record;
+
+                if ($this->_useIdentityMap) {
+                    $this->_identityMap[$id] = $record;
+                }
             }
             $this->_data = array();
         } else {
@@ -1962,11 +1972,7 @@ class Doctrine_Table extends Doctrine_Configurable implements Countable
      */
     public function count()
     {
-        $q = $this->createQuery();
-        $c = $q->count();
-        $q->free();
-
-        return $c;
+        return $this->createQuery()->count();
     }
 
     /**
@@ -2755,10 +2761,10 @@ class Doctrine_Table extends Doctrine_Configurable implements Countable
         $fieldsFound = $matches[1];
         $operatorFound = array_map('strtoupper', $matches[2]);
 
-        // Check if $fieldName has unidentified parts left 
+        // Check if $fieldName has unidentified parts left
         if (strlen(implode('', $fieldsFound) . implode('', $operatorFound)) !== strlen($fieldName)) {
             $expression = preg_replace('/(' . implode('|', $fields) . ')(Or|And)?/', '($1)$2', $fieldName);
-            throw new Doctrine_Table_Exception('Invalid expression found: ' . $expression);    
+            throw new Doctrine_Table_Exception('Invalid expression found: ' . $expression);
         }
 
         // Build result
@@ -2783,7 +2789,7 @@ class Doctrine_Table extends Doctrine_Configurable implements Countable
             }
 
             $where .= ' ' . strtoupper($operatorFound[$index]) . ' ';
-            
+
             $lastOperator = $operatorFound[$index];
         }
 

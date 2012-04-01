@@ -83,7 +83,7 @@ class Doctrine_Data_Import extends Doctrine_Data
                 } else if (is_dir($dir)) {
                     $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir),
                                                             RecursiveIteratorIterator::LEAVES_ONLY);
-                    $filesOrdered = array();                                        
+                    $filesOrdered = array();
                     foreach ($it as $file) {
                         $filesOrdered[] = $file;
                     }
@@ -138,7 +138,7 @@ class Doctrine_Data_Import extends Doctrine_Data
                         $rel = $table->getRelation($key);
                         $relClassName = $rel->getTable()->getOption('name');
                         $relRowKey = $rowKey . '_' . $relClassName;
-            
+
                         if ($rel->getType() == Doctrine_Relation::ONE) {
                             $val = array($relRowKey => $value);
                             $this->_rows[$className][$rowKey][$key] = $relRowKey;
@@ -146,7 +146,7 @@ class Doctrine_Data_Import extends Doctrine_Data
                             $val = $value;
                             $this->_rows[$className][$rowKey][$key] = array_keys($val);
                         }
-            
+
                         $this->_buildRows($relClassName, $val);
                     }
                 }
@@ -183,7 +183,7 @@ class Doctrine_Data_Import extends Doctrine_Data
      */
     protected function _getImportedObject($rowKey, Doctrine_Record $record, $relationName, $referringRowKey)
     {
-        $relation = $record->getTable()->getRelation($relationName); 
+        $relation = $record->getTable()->getRelation($relationName);
         $rowKey = $this->_getRowKeyPrefix($relation->getTable()) . $rowKey;
 
         if ( ! isset($this->_importedObjects[$rowKey])) {
@@ -338,6 +338,7 @@ class Doctrine_Data_Import extends Doctrine_Data
         foreach ($manager as $connection) {
             $tree = $connection->unitOfWork->buildFlushTree(array_keys($array));
 
+            $connection->beginTransaction();
             foreach ($tree as $model) {
                 foreach ($this->_importedObjects as $obj) {
 
@@ -346,8 +347,8 @@ class Doctrine_Data_Import extends Doctrine_Data
                     }
                 }
             }
+            $connection->commit();
         }
-
     }
 
     /**

@@ -138,6 +138,10 @@ abstract class Doctrine_Query_Abstract
     protected $_expireQueryCache = false;
     protected $_queryCacheTTL;
 
+    /**
+     * @var boolean $_autoFree  A boolean value that indicates whether or not use auto free.
+     */
+    protected $_autoFree = false;
 
     /**
      * @var Doctrine_Connection  The connection used by this query object.
@@ -292,6 +296,7 @@ abstract class Doctrine_Query_Abstract
         $this->_tokenizer = new Doctrine_Query_Tokenizer();
         $this->_resultCacheTTL = $this->_conn->getAttribute(Doctrine_Core::ATTR_RESULT_CACHE_LIFESPAN);
         $this->_queryCacheTTL = $this->_conn->getAttribute(Doctrine_Core::ATTR_QUERY_CACHE_LIFESPAN);
+        $this->_autoFree = $this->_conn->getAttribute(Doctrine_Core::ATTR_AUTO_FREE_QUERY_OBJECTS);
     }
 
     /**
@@ -319,6 +324,18 @@ abstract class Doctrine_Query_Abstract
             throw new Doctrine_Query_Exception('Unknown option ' . $name);
         }
         $this->_options[$name] = $value;
+    }
+
+    /**
+     * Sets auto free
+     *
+     * @param boolean $value True or false (true by default)
+     */
+    public function setAutoFree($value = true)
+    {
+        $this->_autoFree = (boolean) $value;
+
+        return $this;
     }
 
     /**
@@ -1043,7 +1060,7 @@ abstract class Doctrine_Query_Abstract
                 }
             }
         }
-        if ($this->getConnection()->getAttribute(Doctrine_Core::ATTR_AUTO_FREE_QUERY_OBJECTS)) {
+        if ($this->_autoFree) {
             $this->free();
         }
 

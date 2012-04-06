@@ -176,7 +176,7 @@ class Doctrine_Template_Listener_Sluggable extends Doctrine_Record_Listener
 
         if ($record->exists()) {
             $identifier = $record->identifier();
-            $whereString .= ' AND r.' . implode(' != ? AND r.', $table->getIdentifierColumnNames()) . ' != ?';
+            $whereString .= ' AND (r.' . implode(' != ? OR r.', $table->getIdentifierColumnNames()) . ' != ?)';
             $whereParams = array_merge($whereParams, array_values($identifier));
         }
 

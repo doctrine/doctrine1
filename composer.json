@@ -1,5 +1,5 @@
 {
-    "name": "doctrine/doctrine1",
+    "name": "drak/doctrine1",
     "type": "library",
     "description": "PHP5 Database ORM",
     "keywords": ["orm", "database"],

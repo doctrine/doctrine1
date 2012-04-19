@@ -78,7 +78,7 @@ class Doctrine_Query_Tokenizer
                     //$parts[$token] = array();
                     $parts[$token] = '';
                 break;
-            
+
                 case 'order':
                 case 'group':
                     $i = ($index + 1);
@@ -91,10 +91,10 @@ class Doctrine_Query_Tokenizer
                         //$parts[$p][] = $token;
                     }
                 break;
-            
+
                 case 'by':
                     continue;
-            
+
                 default:
                     if ( ! isset($p)) {
                         throw new Doctrine_Query_Tokenizer_Exception(
@@ -387,7 +387,7 @@ class Doctrine_Query_Tokenizer
                 $i += sizeof($subterms);
             }
         }
-        
+
         return $terms;
     }
 
@@ -442,9 +442,9 @@ class Doctrine_Query_Tokenizer
 
     /**
      * This expects input from clauseExplodeNonQuoted.
-     * It will go through the result and merges any bracket terms with 
+     * It will go through the result and merges any bracket terms with
      * unbalanced bracket count.
-     * Note that only the third parameter in each term is used to get the 
+     * Note that only the third parameter in each term is used to get the
      * bracket overhang. This is needed to be able to handle quoted strings
      * wich contain brackets
      *
@@ -478,7 +478,7 @@ class Doctrine_Query_Tokenizer
             if ( ! isset($res[$i])) {
                 $res[$i] = array($val[0], $val[1], $val[2]);
             } else {
-                $res[$i][0] .= $res[$i][1] . $val[0]; 
+                $res[$i][0] .= $res[$i][1] . $val[0];
                 $res[$i][1] = $val[1];
                 $res[$i][2] += $val[2];
             }
@@ -513,7 +513,10 @@ class Doctrine_Query_Tokenizer
     public function quotedStringExplode($str)
     {
         // Split by all possible incarnations of a quote
-        $split = array_map('preg_quote', array("\\'","''","'", "\\\"", "\"\"", "\""));
+        $split = array("\\'","''","'", "\\\"", "\"\"", "\"");
+        foreach ($split as &$v) {
+            $v = preg_quote($v);
+        }
         $split = '#(' . implode('|', $split) . ')#';
         $str = preg_split($split, $str, -1, PREG_SPLIT_DELIM_CAPTURE);
 

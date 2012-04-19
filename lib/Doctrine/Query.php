@@ -1,6 +1,6 @@
 <?php
 /*
- *  $Id: Query.php 7674 2010-06-08 22:59:01Z jwage $
+ *  $Id$
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -30,7 +30,7 @@
  * @license     http://www.opensource.org/licenses/lgpl-license.php LGPL
  * @link        www.doctrine-project.org
  * @since       1.0
- * @version     $Revision: 7674 $
+ * @version     $Revision$
  * @author      Konsta Vesterinen <kvesteri@cc.hut.fi>
  * @todo        Proposal: This class does far too much. It should have only 1 task: Collecting
  *              the DQL query parts and the query parameters (the query state and caching options/methods
@@ -1288,7 +1288,10 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
 
                     // mysql doesn't support LIMIT in subqueries
                     $list = $this->_conn->execute($subquery, $this->_execParams)->fetchAll(Doctrine_Core::FETCH_COLUMN);
-                    $subquery = implode(', ', array_map(array($this->_conn, 'quote'), $list));
+                    foreach ($list as &$v) {
+                        $v = $this->_conn->quote($v);
+                    }
+                    $subquery = implode(', ', $list);
 
                     break;
 
@@ -1354,8 +1357,8 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
 
                 if ($orderBy) {
                     $e = explode(',', $orderBy);
-                    $e = array_map('trim', $e);
                     foreach ($e as $v) {
+                        $v = trim($v);
                         if ( ! in_array($v, $this->_sqlParts['orderby'])) {
                             $this->_sqlParts['orderby'][] = $v;
                         }
@@ -1421,8 +1424,11 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
                 foreach ($e as $f) {
                     if ($f == 0 || $f % 2 == 0) {
                         $partOriginal = str_replace(',', '', trim($f));
-                        $callback = create_function('$e', 'return trim($e, \'[]`"\');');
-                        $part = trim(implode('.', array_map($callback, explode('.', $partOriginal))));
+                        $e = explode('.', $partOriginal);
+                        foreach ($e as &$v) {
+                            $v = trim($v, '[]`"');
+                        }
+                        $part = trim(implode('.', $e));
 
                         if (strpos($part, '.') === false) {
                             continue;

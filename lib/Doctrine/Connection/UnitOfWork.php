@@ -149,7 +149,12 @@ class Doctrine_Connection_UnitOfWork extends Doctrine_Connection_Module
         } catch (Exception $e) {
             // Make sure we roll back our internal transaction
             //$record->state($state);
-            $conn->rollback();
+            try {
+              $conn->rollback();
+            }
+            catch (Exception $ex) {
+              throw new Exception(sprintf('"%s" because "%s"', $ex->getMessage(), $e->getMessage()));
+            }
             throw $e;
         }
 

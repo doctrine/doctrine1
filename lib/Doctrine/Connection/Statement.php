@@ -479,6 +479,14 @@ class Doctrine_Connection_Statement implements Doctrine_Adapter_Statement_Interf
      */
     public function setFetchMode($mode, $arg1 = null, $arg2 = null)
     {
-        return $this->_stmt->setFetchMode($mode, $arg1, $arg2);
+        if($arg1 != null && $arg2 != null) {
+            return $this->_stmt->setFetchMode($mode, $arg1, $arg2);
+        }
+        else if($arg1 != null) {
+            return $this->_stmt->setFetchMode($mode, $arg1);
+        }
+        else {
+            return $this->_stmt->setFetchMode($mode);
+        }
     }
 }

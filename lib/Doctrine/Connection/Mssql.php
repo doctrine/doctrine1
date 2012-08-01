@@ -405,7 +405,7 @@ class Doctrine_Connection_Mssql extends Doctrine_Connection_Common
             $query = preg_replace($re, "\\1##{$key}##", $query, 1);
         }
         
-        $replacement = 'is_null($value) ? \'NULL\' : $this->quote($params[\\1])';
+        $replacement = 'is_null($params[\\1]) ? \'NULL\' : $this->quote($params[\\1])';
         $query = preg_replace('/##(\d+)##/e', $replacement, $query);
 
         return $query;

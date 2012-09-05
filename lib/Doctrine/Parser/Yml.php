@@ -68,7 +68,7 @@ class Doctrine_Parser_Yml extends Doctrine_Parser
      * @param  string  $path  Path to load yaml data from
      * @return array   $array Array of parsed yaml data
      */
-    public function loadData($path)
+    public function loadData($path, $charset = 'UTF-8')
     {
         try {
           /*
@@ -77,7 +77,7 @@ class Doctrine_Parser_Yml extends Doctrine_Parser
            */
           $contents = $this->doLoad($path);
 
-          $array = sfYaml::load($contents);
+          $array = sfYaml::load($contents, $charset);
 
           return $array;
 

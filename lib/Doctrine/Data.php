@@ -80,6 +80,8 @@ class Doctrine_Data
      */
     protected $_exportIndividualFiles = false;
 
+    protected $_charset = 'UTF-8';
+
     /**
      * setFormat
      *
@@ -182,6 +184,16 @@ class Doctrine_Data
         return $this->_exportIndividualFiles;
     }
 
+    public function setCharset($charset)
+    {
+        $this->_charset = $charset;
+    }
+
+    public function getCharset()
+    {
+        return $this->_charset;
+    }
+
     /**
      * exportData
      *
@@ -213,11 +225,12 @@ class Doctrine_Data
      * @param string $models
      * @return void
      */
-    public function importData($directory, $format = 'yml', $models = array(), $append = false)
+    public function importData($directory, $format = 'yml', $models = array(), $append = false, $charset = 'UTF-8')
     {
         $import = new Doctrine_Data_Import($directory);
         $import->setFormat($format);
         $import->setModels($models);
+        $import->setCharset($charset);
 
         return $import->doImport($append);
     }

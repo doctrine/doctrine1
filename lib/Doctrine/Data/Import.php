@@ -64,7 +64,7 @@ class Doctrine_Data_Import extends Doctrine_Data
      *
      * @return array $array
      */
-    public function doParsing()
+    public function doParsing($charset = 'UTF-8')
     {
         $recursiveMerge = Doctrine_Manager::getInstance()->getAttribute(Doctrine_Core::ATTR_RECURSIVE_MERGE_FIXTURES);
         $mergeFunction = $recursiveMerge === true ? 'array_merge_recursive':'array_merge';
@@ -78,7 +78,7 @@ class Doctrine_Data_Import extends Doctrine_Data
 
                 // If they specified a specific yml file
                 if (end($e) == 'yml') {
-                    $array = $mergeFunction($array, Doctrine_Parser::load($dir, $this->getFormat()));
+                    $array = $mergeFunction($array, Doctrine_Parser::load($dir, $this->getFormat(), $this->getCharset()));
                 // If they specified a directory
                 } else if (is_dir($dir)) {
                     $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir),
@@ -92,7 +92,7 @@ class Doctrine_Data_Import extends Doctrine_Data
                     foreach ($filesOrdered as $file) {
                         $e = explode('.', $file->getFileName());
                         if (in_array(end($e), $this->getFormats())) {
-                            $array = $mergeFunction($array, Doctrine_Parser::load($file->getPathName(), $this->getFormat()));
+                            $array = $mergeFunction($array, Doctrine_Parser::load($file->getPathName(), $this->getFormat(), $this->getCharset()));
                         }
                     }
                 }
@@ -107,9 +107,9 @@ class Doctrine_Data_Import extends Doctrine_Data
      *
      * @return void
      */
-    public function doImport($append = false)
+    public function doImport($append = false, $charset = 'UTF-8')
     {
-        $array = $this->doParsing();
+        $array = $this->doParsing($charset);
 
         if ( ! $append) {
             $this->purge(array_reverse(array_keys($array)));

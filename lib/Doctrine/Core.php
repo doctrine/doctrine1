@@ -1004,11 +1004,11 @@ class Doctrine_Core
      * @param string $append Whether or not to append the data
      * @return void
      */
-    public static function loadData($yamlPath, $append = false)
+    public static function loadData($yamlPath, $append = false, $charset = 'UTF-8')
     {
         $data = new Doctrine_Data();
 
-        return $data->importData($yamlPath, 'yml', array(), $append);
+        return $data->importData($yamlPath, 'yml', array(), $append, $charset);
     }
 
     /**

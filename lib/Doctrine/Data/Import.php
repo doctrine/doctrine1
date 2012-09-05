@@ -64,7 +64,7 @@ class Doctrine_Data_Import extends Doctrine_Data
      *
      * @return array $array
      */
-    public function doParsing($charset = 'UTF-8')
+    public function doParsing()
     {
         $recursiveMerge = Doctrine_Manager::getInstance()->getAttribute(Doctrine_Core::ATTR_RECURSIVE_MERGE_FIXTURES);
         $mergeFunction = $recursiveMerge === true ? 'array_merge_recursive':'array_merge';
@@ -107,9 +107,9 @@ class Doctrine_Data_Import extends Doctrine_Data
      *
      * @return void
      */
-    public function doImport($append = false, $charset = 'UTF-8')
+    public function doImport($append = false)
     {
-        $array = $this->doParsing($charset);
+        $array = $this->doParsing();
 
         if ( ! $append) {
             $this->purge(array_reverse(array_keys($array)));

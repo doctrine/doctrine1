@@ -15,5 +15,8 @@
     },
     "autoload": {
         "psr-0": { "Doctrine_": "lib/" }
-    }
+    },
+    "include-path": [
+        "lib/"
+    ]
 }

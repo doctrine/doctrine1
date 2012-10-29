@@ -2834,6 +2834,81 @@ class Doctrine_Table extends Doctrine_Configurable implements Countable, Seriali
     }
 
     /**
+     * deletes table row(s) matching the specified identifier
+     *
+     * @throws Doctrine_Connection_Exception    if something went wrong at the database level
+     * @param mixed $identifier         An associateve array containing identifier column-value pairs.
+     * @return integer                  the number of affected rows. Boolean false if empty value array was given,
+     */
+    public function delete($identifier)
+    {
+        return $this->getConnection()->delete($this, (array) $identifier);
+    }
+
+    /**
+     * Inserts a table row with specified data.
+     *
+     * @param array $fields             An associative array containing column-value pairs.
+     *                                  Values can be strings or Doctrine_Expression instances.
+     * @return integer                  the number of affected rows. Boolean false if empty value array was given,
+     */
+    public function insert(array $fields)
+    {
+        return $this->getConnection()->insert($this, $fields);
+    }
+
+    /**
+     * Updates table row(s) with specified data.
+     *
+     * @throws Doctrine_Connection_Exception    if something went wrong at the database level
+     * @param array $fields             An associative array containing column-value pairs.
+     *                                  Values can be strings or Doctrine_Expression instances.
+     * @param mixed $identifier         An associateve array containing identifier column-value pairs.
+     * @return integer                  the number of affected rows. Boolean false if empty value array was given,
+     */
+    public function update(array $fields, $identifier)
+    {
+        return $this->getConnection()->update($this, $fields, (array) $identifier);
+    }
+
+    /**
+     * Execute a SQL REPLACE query. A REPLACE query is identical to a INSERT
+     * query, except that if there is already a row in the table with the same
+     * key field values, the REPLACE query just updates its values instead of
+     * inserting a new row.
+     *
+     * The REPLACE type of query does not make part of the SQL standards. Since
+     * practically only MySQL and SQLIte implement it natively, this type of
+     * query isemulated through this method for other DBMS using standard types
+     * of queries inside a transaction to assure the atomicity of the operation.
+     *
+     *
+     * @param array $fields     an associative array that describes the fields and the
+     *                          values that will be inserted or updated in the specified table. The
+     *                          indexes of the array are the names of all the fields of the table.
+     *
+     *                          The values of the array are values to be assigned to the specified field.
+     *
+     * @param mixed $keys       an array containing all key fields (primary key fields
+     *                          or unique index fields) for this table
+     *
+     *                          the uniqueness of a row will be determined according to
+     *                          the provided key fields
+     *
+     *                          this method will fail if no key fields are specified
+     *
+     * @throws Doctrine_Connection_Exception        if this driver doesn't support replace
+     * @throws Doctrine_Connection_Exception        if some of the key values was null
+     * @throws Doctrine_Connection_Exception        if there were no key fields
+     * @throws PDOException                         if something fails at PDO level
+     * @ return integer                              number of rows affected
+     */
+    public function replace(array $fields, $keys)
+    {
+        return $this->getConnection()->replace($this, $fields, (array) $keys);
+    }
+
+    /**
      * Adds support for magic finders.
      *
      * This method add support for calling methods not defined in code, such as:

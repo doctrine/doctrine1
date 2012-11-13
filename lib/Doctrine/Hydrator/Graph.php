@@ -105,13 +105,17 @@ abstract class Doctrine_Hydrator_Graph extends Doctrine_Hydrator_Abstract
             } else {
                 $data = $stmt->fetch(Doctrine_Core::FETCH_ASSOC);
                 if ( ! $data) {
+                    $stmt->closeCursor();
+                  
                     return $result;
                 }
             }
             $activeRootIdentifier = null;
         } else { 
             $data = $stmt->fetch(Doctrine_Core::FETCH_ASSOC); 
-            if ( ! $data) { 
+            if ( ! $data) {
+                $stmt->closeCursor();
+               
                 return $result; 
             }
         }
@@ -134,6 +138,9 @@ abstract class Doctrine_Hydrator_Graph extends Doctrine_Hydrator_Abstract
                 } else if ($activeRootIdentifier != $id[$rootAlias]) { 
                     // first row for the next record 
                     $this->_priorRow = $data; 
+                    
+                    $stmt->closeCursor();
+                    
                     return $result; 
                 } 
             }

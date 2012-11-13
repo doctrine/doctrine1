@@ -1040,8 +1040,11 @@ abstract class Doctrine_Connection extends Doctrine_Configurable implements Coun
             if ( ! empty($params)) {
                 $stmt = $this->prepare($query);
                 $stmt->execute($params);
+                $rowCount = $stmt->rowCount();
+                
+                $stmt->closeCursor();
 
-                return $stmt->rowCount();
+                return $rowCount;
             } else {
                 $event = new Doctrine_Event($this, Doctrine_Event::CONN_EXEC, $query, $params);
 

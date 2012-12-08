@@ -17,6 +17,6 @@
         "psr-0": { "Doctrine_": "lib/" },
         "classmap": [
             "lib/Doctrine/Parser/sfYaml/"
-        ],
+        ]
     }
 }

@@ -16,6 +16,7 @@
     "autoload": {
         "psr-0": { "Doctrine_": "lib/" },
         "classmap": [
+            "lib/Doctrine.php",
             "lib/Doctrine/Parser/sfYaml/"
         ]
     }

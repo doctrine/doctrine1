@@ -125,6 +125,13 @@ class Doctrine_Formatter extends Doctrine_Connection_Module
             return $str;
         }
         $tmp = $this->conn->identifier_quoting;
+
+        // Avoid double passing
+        // http://www.doctrine-project.org/jira/browse/DC-972
+        if ((substr($str, 0, 1) === $tmp['start']) && (substr($str, -1) === $tmp['end'])) {
+            return $str;
+        }
+
         $str = str_replace($tmp['end'],
             $tmp['escape'] .
             $tmp['end'], $str);

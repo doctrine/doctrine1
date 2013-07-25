@@ -85,7 +85,7 @@ class Doctrine_Query_Join_TestCase extends Doctrine_UnitTestCase
           ->innerJoin('c.City c2 WITH LOWER(c2.name) LIKE LOWER(?)', array('city 1'))
           ->where('c.id = ?', array(1));
 
-        $this->assertEqual($q->getSqlQuery(), 'SELECT r.id AS r__id, r.name AS r__name, r2.id AS r2__id, r2.name AS r2__name, r2.country_id AS r2__country_id, r2.district_id AS r2__district_id FROM record__country r INNER JOIN record__city r2 ON r.id = r2.country_id AND (LOWER(r2.name) LIKE LOWER(?)) WHERE (r.id = ?)');
+        $this->assertEqual($q->getSqlQuery(), 'SELECT r.id AS r__id, r.name AS r__name, r2.id AS r2__id, r2.name AS r2__name, r2.country_id AS r2__country_id, r2.district_id AS r2__district_id FROM record__country r INNER JOIN record__city r2 ON ( r.id = r2.country_id ) AND (LOWER(r2.name) LIKE LOWER(?)) WHERE (r.id = ?)');
     }
 
     public function testSubQueryInJoins()
@@ -96,7 +96,7 @@ class Doctrine_Query_Join_TestCase extends Doctrine_UnitTestCase
             $q->from('Record_Country c')
               ->innerJoin('c.City c2 WITH (c2.name = ? OR c2.id IN (SELECT c3.id FROM Record_City c3 WHERE c3.id = ? OR c3.id = ?))');
             $sql = $q->getSqlQuery();
-            $this->assertEqual($sql, 'SELECT r.id AS r__id, r.name AS r__name, r2.id AS r2__id, r2.name AS r2__name, r2.country_id AS r2__country_id, r2.district_id AS r2__district_id FROM record__country r INNER JOIN record__city r2 ON r.id = r2.country_id AND ((r2.name = ? OR r2.id IN (SELECT r3.id AS r3__id FROM record__city r3 WHERE (r3.id = ? OR r3.id = ?))))');
+            $this->assertEqual($sql, 'SELECT r.id AS r__id, r.name AS r__name, r2.id AS r2__id, r2.name AS r2__name, r2.country_id AS r2__country_id, r2.district_id AS r2__district_id FROM record__country r INNER JOIN record__city r2 ON ( r.id = r2.country_id ) AND ((r2.name = ? OR r2.id IN (SELECT r3.id AS r3__id FROM record__city r3 WHERE (r3.id = ? OR r3.id = ?))))');
 
             $this->pass();
         } catch (Exception $e) {
@@ -113,7 +113,7 @@ class Doctrine_Query_Join_TestCase extends Doctrine_UnitTestCase
           ->innerJoin('c.City c2 WITH LOWER(UPPER(c2.name)) LIKE LOWER(?)', array('city 1'))
           ->where('c.id = ?', array(1));
 
-        $this->assertEqual($q->getSqlQuery(), 'SELECT r.id AS r__id, r.name AS r__name, r2.id AS r2__id, r2.name AS r2__name, r2.country_id AS r2__country_id, r2.district_id AS r2__district_id FROM record__country r INNER JOIN record__city r2 ON r.id = r2.country_id AND (LOWER(UPPER(r2.name)) LIKE LOWER(?)) WHERE (r.id = ?)');
+        $this->assertEqual($q->getSqlQuery(), 'SELECT r.id AS r__id, r.name AS r__name, r2.id AS r2__id, r2.name AS r2__name, r2.country_id AS r2__country_id, r2.district_id AS r2__district_id FROM record__country r INNER JOIN record__city r2 ON ( r.id = r2.country_id ) AND (LOWER(UPPER(r2.name)) LIKE LOWER(?)) WHERE (r.id = ?)');
     }
     
     
@@ -126,7 +126,7 @@ class Doctrine_Query_Join_TestCase extends Doctrine_UnitTestCase
           ->innerJoin('c.City c2 WITH LOWER(UPPER(c2.name)) LIKE CONCAT(UPPER(?), UPPER(c2.name))', array('city 1'))
           ->where('c.id = ?', array(1));
 
-        $this->assertEqual($q->getSqlQuery(), 'SELECT r.id AS r__id, r.name AS r__name, r2.id AS r2__id, r2.name AS r2__name, r2.country_id AS r2__country_id, r2.district_id AS r2__district_id FROM record__country r INNER JOIN record__city r2 ON r.id = r2.country_id AND (LOWER(UPPER(r2.name)) LIKE CONCAT(UPPER(?), UPPER(r2.name))) WHERE (r.id = ?)');
+        $this->assertEqual($q->getSqlQuery(), 'SELECT r.id AS r__id, r.name AS r__name, r2.id AS r2__id, r2.name AS r2__name, r2.country_id AS r2__country_id, r2.district_id AS r2__district_id FROM record__country r INNER JOIN record__city r2 ON ( r.id = r2.country_id ) AND (LOWER(UPPER(r2.name)) LIKE CONCAT(UPPER(?), UPPER(r2.name))) WHERE (r.id = ?)');
     }
     
     
@@ -139,7 +139,7 @@ class Doctrine_Query_Join_TestCase extends Doctrine_UnitTestCase
           ->innerJoin('c.City c2 WITH CONCAT(UPPER(c2.name), c2.name) LIKE UPPER(?)', array('CITY 1city 1'))
           ->where('c.id = ?', array(1));
 
-        $this->assertEqual($q->getSqlQuery(), 'SELECT r.id AS r__id, r.name AS r__name, r2.id AS r2__id, r2.name AS r2__name, r2.country_id AS r2__country_id, r2.district_id AS r2__district_id FROM record__country r INNER JOIN record__city r2 ON r.id = r2.country_id AND (CONCAT(UPPER(r2.name), r2.name) LIKE UPPER(?)) WHERE (r.id = ?)');
+        $this->assertEqual($q->getSqlQuery(), 'SELECT r.id AS r__id, r.name AS r__name, r2.id AS r2__id, r2.name AS r2__name, r2.country_id AS r2__country_id, r2.district_id AS r2__district_id FROM record__country r INNER JOIN record__city r2 ON ( r.id = r2.country_id ) AND (CONCAT(UPPER(r2.name), r2.name) LIKE UPPER(?)) WHERE (r.id = ?)');
     }
 
 
@@ -152,7 +152,7 @@ class Doctrine_Query_Join_TestCase extends Doctrine_UnitTestCase
           ->innerJoin('c.City c2 WITH c2.id IN (?, ?)', array(1, 2))
           ->where('c.id = ?', array(1));
 
-        $this->assertEqual($q->getSqlQuery(), 'SELECT r.id AS r__id, r.name AS r__name, r2.id AS r2__id, r2.name AS r2__name, r2.country_id AS r2__country_id, r2.district_id AS r2__district_id FROM record__country r INNER JOIN record__city r2 ON r.id = r2.country_id AND (r2.id IN (?, ?)) WHERE (r.id = ?)');
+        $this->assertEqual($q->getSqlQuery(), 'SELECT r.id AS r__id, r.name AS r__name, r2.id AS r2__id, r2.name AS r2__name, r2.country_id AS r2__country_id, r2.district_id AS r2__district_id FROM record__country r INNER JOIN record__city r2 ON ( r.id = r2.country_id ) AND (r2.id IN (?, ?)) WHERE (r.id = ?)');
     }
 
 
@@ -164,7 +164,7 @@ class Doctrine_Query_Join_TestCase extends Doctrine_UnitTestCase
           ->from('Record_Country c')->innerJoin('c.City c2 WITH c2.id = 2')
           ->where('c.id = ?', array(1));
 
-        $this->assertEqual($q->getSqlQuery(), 'SELECT r.id AS r__id, r.name AS r__name, r2.id AS r2__id, r2.name AS r2__name, r2.country_id AS r2__country_id, r2.district_id AS r2__district_id FROM record__country r INNER JOIN record__city r2 ON r.id = r2.country_id AND (r2.id = 2) WHERE (r.id = ?)');
+        $this->assertEqual($q->getSqlQuery(), 'SELECT r.id AS r__id, r.name AS r__name, r2.id AS r2__id, r2.name AS r2__name, r2.country_id AS r2__country_id, r2.district_id AS r2__district_id FROM record__country r INNER JOIN record__city r2 ON ( r.id = r2.country_id ) AND (r2.id = 2) WHERE (r.id = ?)');
     }
 
     public function testRecordHydrationWorksWithDeeplyNestedStructuresAndArrayFetching()

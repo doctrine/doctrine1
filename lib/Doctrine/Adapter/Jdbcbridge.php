@@ -87,7 +87,7 @@ class Doctrine_Adapter_Jdbcbridge implements Doctrine_Adapter_Interface
      */
     public function __construct($config = array(), $username = null, $password = null)
     {
-        $this->config['dbname']   = $config['dbname'];
+        $this->config['dbname'] = $config['dbname'];
 
         if (isset($config['charset'])) {
             $this->config['charset']  = $config['charset'];
@@ -97,13 +97,35 @@ class Doctrine_Adapter_Jdbcbridge implements Doctrine_Adapter_Interface
             $this->config['persistent']  = $config['persistent'];
         }
 
+        if (isset($config['port'])) {
+            $this->config['port']  = $config['port'];
+        } else {
+            $config['port'] = $this->config['port']  = 4444;
+        }
+
+        if ( ! isset($config['host']) || ! $config['host']) {
+            $config['host'] = $this->config['host'] = 'localhost';
+        }
+
+        if ( ! isset($config['verbose'])) {
+            $config['verbose'] = $this->config['verbose'] = false;
+        }
+
+        if ($username) {
+            $this->config['username'] = $username;
+        }
+
+        if ($password) {
+            $this->config['password'] = $password;
+        }
+
         $this->connection = new Zikula_JdbcBridge();
-        $this->connection->connect ("jdbc:derby://$config[host]:$config[port]/$config[dbname]");;
+        $this->connection->connect ("jdbc:derby://$config[host]:$config[port]/$config[dbname]", $username, $password, $config['verbose']);
 
         if ($this->connection === false) {
-            throw new Doctrine_Adapter_Exception(sprintf("Unable to Connect to :'%s' as '%s'", $this->config['dbname'], $this->config['username']));
+            throw new Doctrine_Adapter_Exception(sprintf("Unable to Connect to :'%s' as '%s' on host %s:%d", $config['dbname'], $username, $config['host'], $config['port']));
         }
-;    }
+    }
 
     /**
      * Prepare a query statement

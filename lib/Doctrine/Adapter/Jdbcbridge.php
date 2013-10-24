@@ -125,6 +125,10 @@ class Doctrine_Adapter_Jdbcbridge implements Doctrine_Adapter_Interface
         if ($this->connection === false) {
             throw new Doctrine_Adapter_Exception(sprintf("Unable to Connect to :'%s' as '%s' on host %s:%d", $config['dbname'], $username, $config['host'], $config['port']));
         }
+
+        if (isset($config['schema']) && $config['schema']) {
+            $this->connection->exec ("SET SCHEMA $config[schema]");
+        }
     }
 
     /**

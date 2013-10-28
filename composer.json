@@ -13,9 +13,6 @@
         "php": ">=5.2.3",
         "ext-pdo": "*"
     },
-    "replace": {
-        "doctrine/doctrine1": "*"
-    },
     "autoload": {
         "psr-0": { "Doctrine_": "lib/" }
     }

@@ -128,6 +128,7 @@ class Doctrine_Formatter extends Doctrine_Connection_Module
         $str = str_replace($tmp['end'],
             $tmp['escape'] .
             $tmp['end'], $str);
+        $str = str_replace('\\', '\\\\', $str);
 
         return $tmp['start'] . $str . $tmp['end'];
     }
@@ -188,7 +189,7 @@ class Doctrine_Formatter extends Doctrine_Connection_Module
         case 'enum':
         case 'set':
         case 'boolean':
-        return "'" . str_replace("'","''",$input) . "'";
+        return "'" . str_replace('\\', '\\\\', str_replace("'","''",$input)) . "'";
         }
     }
 

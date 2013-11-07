@@ -311,6 +311,11 @@ $nestedSet->addTestCase(new Doctrine_NestedSet_TimestampableMultiRoot_TestCase()
 $nestedSet->addTestCase(new Doctrine_NestedSet_Hydration_TestCase());
 $test->addTestCase($nestedSet);
 
+// Quoting Tests (not yet fully tested)
+$quote = new GroupTest('Quoting test', 'quote');
+$quote->addTestCase(new Doctrine_Quote_Mysql_TestCase());
+$test->addTestCase($quote);
+
 /*
 $unsorted = new GroupTest('Performance', 'performance');
 $unsorted->addTestCase(new Doctrine_Hydrate_Performance_TestCase());

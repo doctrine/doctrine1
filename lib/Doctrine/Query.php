@@ -278,10 +278,10 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
      */
     public function fetchOne($params = array(), $hydrationMode = null)
     {
-		if ( !count($this->getDqlPart('limit')) )
-		{
-			$this->limit( 1 );
-		}
+        if ( !count($this->getDqlPart('limit')) )
+        {
+            $this->limit( 1 );
+        }
         
         $collection = $this->execute($params, $hydrationMode);
 

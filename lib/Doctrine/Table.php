@@ -1495,7 +1495,7 @@ class Doctrine_Table extends Doctrine_Configurable implements Countable, Seriali
      * This method assign the connection which this table will use
      * to create queries.
      *
-     * @params Doctrine_Connection      a connection object
+     * @param Doctrine_Connection      a connection object
      * @return Doctrine_Table           this object; fluent interface
      */
     public function setConnection(Doctrine_Connection $conn)
@@ -1523,7 +1523,7 @@ class Doctrine_Table extends Doctrine_Configurable implements Countable, Seriali
      * This method create a new instance of the model defined by this table.
      * The class of this record is the subclass of Doctrine_Record defined by
      * this component. The record is not created in the database until you
-     * call @save().
+     * call Doctrine_Record::save().
      *
      * @param $array             an array where keys are field names and
      *                           values representing field values. Can contain

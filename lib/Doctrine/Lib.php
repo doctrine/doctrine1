@@ -268,8 +268,6 @@ class Doctrine_Lib
         }
     }
 
-    // Code from symfony sfToolkit class. See LICENSE
-    // code from cto at verylastroom dot com
     /**
      * arrayDiffSimple
      *
@@ -281,6 +279,9 @@ class Doctrine_Lib
      * only 2 arrays. PHP versions > 5.4.0 generate some NOTICE if you use array_diff
      * sometimes because of array_diff internal behavior with (string) casts.
      * This method solves the problem.
+     *
+     * Code from symfony sfToolkit class. See LICENSE
+     * code from cto at verylastroom dot com
      *
      * @param array $array1
      * @param array $array2

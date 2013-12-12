@@ -612,7 +612,15 @@ class Doctrine_Collection extends Doctrine_Access implements Countable, Iterator
         } elseif ($rel instanceof Doctrine_Relation_Association) {
             $identifier = $this->_table->getIdentifier();
             $asf        = $rel->getAssociationFactory();
-            $name       = $table->getComponentName();
+
+            $foreignAlias = null;
+            foreach ($asf->getRelations() as $foreignRel) {
+                if ($foreignRel->getLocalFieldName() === $rel->getForeignRefFieldName()) {
+                    $foreignAlias = $foreignRel->getAlias();
+                    break;
+                }
+            }
+            if (!$foreignAlias) throw new Doctrine_Exception('No foreign alias found');
 
             foreach ($this->data as $key => $record) {
                 if ( ! $record->exists()) {
@@ -621,7 +629,7 @@ class Doctrine_Collection extends Doctrine_Access implements Countable, Iterator
                 $sub = Doctrine_Collection::create($table);
                 foreach ($coll as $k => $related) {
                     if ($related->get($local) == $record[$identifier]) {
-                        $sub->add($related->get($name));
+                        $sub->add($related->get($foreignAlias));
                     }
                 }
                 $this->data[$key]->setRelated($name, $sub);

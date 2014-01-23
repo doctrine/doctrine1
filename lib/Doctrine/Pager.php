@@ -131,7 +131,11 @@ class Doctrine_Pager
         // Assign new offset and limit to Doctrine_Query object
         $p = $this->getQuery();
         $p->offset($offset);
-        $p->limit($this->getMaxPerPage());
+        if ($this->getPage() == $this->getLastPage()) {
+            $p->limit($this->getNumResults() % $this->getMaxPerPage());
+        } else {
+            $p->limit($this->getMaxPerPage());
+        }
     }
 
     /**

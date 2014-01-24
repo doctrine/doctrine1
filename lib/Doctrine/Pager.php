@@ -132,7 +132,7 @@ class Doctrine_Pager
         $p = $this->getQuery();
         $p->offset($offset);
         if ($this->getPage() == $this->getLastPage()) {
-            $p->limit($this->getNumResults() % $this->getMaxPerPage());
+            $p->limit($this->getNumResults() % $this->getMaxPerPage() && ($this->getNumResults() % $this->getMaxPerPage() != 0));
         } else {
             $p->limit($this->getMaxPerPage());
         }

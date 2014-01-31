@@ -189,7 +189,7 @@ class Doctrine_Connection_Mssql extends Doctrine_Connection_Common
         $tokens = preg_split('/,/', $parsed);
 
         for ($i = 0, $iMax = count($tokens); $i < $iMax; $i++) {
-            $tokens[$i] = trim(preg_replace('/##(\d+)##/e', "\$chunks[\\1]", $tokens[$i]));
+            $tokens[$i] = trim(preg_replace_callback('/##(\d+)##/', function($m) { return $chunks[$m[1]]; }, $tokens[$i]));
         }
 
         return $tokens;

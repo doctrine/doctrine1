@@ -65,7 +65,7 @@ class Doctrine_Ticket_DC28_TestCase extends Doctrine_UnitTestCase
             
             $this->assertEqual(
                 $q->getSqlQuery(), 
-                'SELECT t.id AS t__id, t.lft AS t__lft, t.rgt AS t__rgt, t.level AS t__level, t2.id AS t2__id, t2.lang AS t2__lang '.
+                'SELECT t.id AS t__id, t.level AS t__level, t.lft AS t__lft, t.rgt AS t__rgt, t2.id AS t2__id, t2.lang AS t2__lang '.
                 'FROM ticket__d_c28__tree t '.
                 'INNER JOIN ticket__d_c28__tree_translation t2 '.
                 'ON t.id = t2.id AND (t2.name != ?)'

@@ -106,7 +106,13 @@ class Doctrine_DataDict_Oracle extends Doctrine_DataDict
             case 'timestamp':
                 return 'DATE';
             case 'float':
+            	if ($this->conn->getAttribute(Doctrine_Core::ATTR_USE_NATIVE_FLOAT)) {
+            		return 'FLOAT'; //return native form of float
+            	}
             case 'double':
+        		if ($this->conn->getAttribute(Doctrine_Core::ATTR_USE_NATIVE_DOUBLE)) {
+            		return 'DOUBLE'; //return native form of double
+            	}
                 return 'NUMBER';
             case 'decimal':
                 $scale = !empty($field['scale']) ? $field['scale'] : $this->conn->getAttribute(Doctrine_Core::ATTR_DECIMAL_PLACES);

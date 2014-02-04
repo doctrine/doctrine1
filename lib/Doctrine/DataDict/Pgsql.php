@@ -425,7 +425,13 @@ class Doctrine_DataDict_Pgsql extends Doctrine_DataDict
             case 'timestamp':
                 return 'TIMESTAMP';
             case 'float':
+            	if($this->conn->getAttribute(Doctrine_Core::ATTR_USE_NATIVE_FLOAT){
+            		return 'FLOAT(24)'; // native single precision float
+            	}
             case 'double':
+        		if($this->conn->getAttribute(Doctrine_Core::ATTR_USE_NATIVE_DOUBLE){
+            		return 'FLOAT(53)'; // native double precision float
+            	}
                 return 'FLOAT';
             case 'decimal':
                 $length = !empty($field['length']) ? $field['length'] : 18;
@@ -557,9 +563,19 @@ class Doctrine_DataDict_Pgsql extends Doctrine_DataDict
                 break;
             case 'float':
             case 'float4':
+            	if($this->conn->getAttribute(Doctrine_Core::ATTR_USE_NATIVE_FLOAT))
+            	{
+            		$type[] = 'float';
+            		break;
+            	}
             case 'float8':
             case 'double':
             case 'double precision':
+            	if($this->conn->getAttribute(Doctrine_Core::ATTR_USE_NATIVE_DOUBLE))
+            	{
+            		$type[] = 'double';
+            		break;
+            	}
             case 'real':
                 $type[] = 'float';
                 break;

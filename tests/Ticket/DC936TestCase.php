@@ -1,6 +1,6 @@
 <?php
 /*
- *  $Id: Json.php 1080 2007-02-10 18:17:08Z jwage $
+ *  $Id$
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -20,50 +20,26 @@
  */
 
 /**
- * Doctrine_Parser_Json
+ * Doctrine_Ticket_DC936_TestCase
  *
  * @package     Doctrine
- * @subpackage  Parser
+ * @author      Brian Fenton <fentie@gmail.com>
  * @license     http://www.opensource.org/licenses/lgpl-license.php LGPL
+ * @category    Object Relational Mapping
  * @link        www.doctrine-project.org
  * @since       1.0
- * @version     $Revision: 1080 $
- * @author      Jonathan H. Wage <jwage@mac.com>
+ * @version     $Revision$
  */
-class Doctrine_Parser_Json extends Doctrine_Parser
+class Doctrine_Ticket_DC936_TestCase extends Doctrine_UnitTestCase 
 {
-    /**
-     * dumpData
-     *
-     * Dump an array of data to a specified path or return
-     * 
-     * @param string $array Array of data to dump to json
-     * @param string $path  Path to dump json data to
-     * @param string $charset The charset of the data being dumped
-     * @return string $json
-     * @return void
-     */
-    public function dumpData($array, $path = null, $charset = null)
+    public function testLoadDataReturnsNestedArray()
     {
-        $data = json_encode($array);
+        $json = '[
+{ "test1": "good job", "test2": true },
+{ "test3": "meh", "test4": false }
+]';
+        $array = Doctrine_Parser::load($json, 'json');
         
-        return $this->doDump($data, $path);
-    }
-
-    /**
-     * loadData
-     *
-     * Load and unserialize data from a file or from passed data
-     * 
-     * @param  string $path   Path to dump data to
-     * @return array  $json   Array of json objects
-     */
-    public function loadData($path)
-    {
-        $contents = $this->doLoad($path);
-        
-        $json = json_decode($contents, true);
-        
-        return $json;
+        $this->assertTrue(is_array($array[1]));
     }
 }

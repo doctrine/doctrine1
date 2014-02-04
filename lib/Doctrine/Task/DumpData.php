@@ -33,7 +33,7 @@
 class Doctrine_Task_DumpData extends Doctrine_Task
 {
     public $description          =   'Dump data to a yaml data fixture file.',
-           $requiredArguments    =   array('data_fixtures_path' =>  'Specify path to write the yaml data fixtures file to.',
+           $requiredArguments    =   array('data_dump_path'     =>  'Specify path to write the yaml data fixtures file to.',
                                            'models_path'        =>  'Specify path to your Doctrine_Record definitions.'),
            $optionalArguments    =   array();
 
@@ -45,7 +45,7 @@ class Doctrine_Task_DumpData extends Doctrine_Task
             throw new Doctrine_Task_Exception('No models were loaded'); 
         }
 
-        $path = $this->getArgument('data_fixtures_path');
+        $path = $this->getArgument('data_dump_path');
 
         if (is_array($path) && count($path) > 0) {
             $path = $path[0];
@@ -56,7 +56,7 @@ class Doctrine_Task_DumpData extends Doctrine_Task
 
             $this->notify(sprintf('Dumped data successfully to: %s', $path));
         } else {
-            throw new Doctrine_Task_Exception('Unable to find data fixtures path.');
+            throw new Doctrine_Task_Exception('Unable to find data dump path.');
         }
     }
 }

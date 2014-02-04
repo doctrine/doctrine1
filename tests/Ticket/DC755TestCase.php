@@ -20,29 +20,41 @@
  */
 
 /**
- * Doctrine_Ticket_1674_TestCase
+ * Doctrine_Ticket_DC755_TestCase
  *
  * @package     Doctrine
- * @author      Konsta Vesterinen <kvesteri@cc.hut.fi>
+ * @author      Andrew Coulton <andrew.coulton@proscenia.co.uk>
  * @license     http://www.opensource.org/licenses/lgpl-license.php LGPL
  * @category    Object Relational Mapping
  * @link        www.doctrine-project.org
  * @since       1.0
  * @version     $Revision$
  */
-class Doctrine_Ticket_1674_TestCase extends Doctrine_UnitTestCase 
+class Doctrine_Ticket_DC755_TestCase extends Doctrine_UnitTestCase 
 {
-    public function testTest()
-    {
-        $users  = Doctrine_Query::create()
-            ->from('User u')
-            ->leftJoin('u.Phonenumber p')
-            ->having('COUNT(p.id) > 0')
-            ->groupBy('u.id')
-            ->limit(1)
-            ->execute();
+	protected $driverName = 'Mysql';
+		
+	public function testYAMLYAMLMigrationsWithPrefix() {
+		$manager = Doctrine_Manager::getInstance();
+	
+		$oldPrefix = $manager->getAttribute(Doctrine_Core::ATTR_MODEL_CLASS_PREFIX);
+		$manager->setAttribute(Doctrine_Core::ATTR_MODEL_CLASS_PREFIX, 'Model_Test');
+		
+		$dir = dirname(__FILE__) . '/DC755/migrations';
+        if ( ! is_dir($dir)) {
+            mkdir($dir, 0777, true);
+        }
+        $migration = new Doctrine_Migration($dir);
+		
+		$diff = new Doctrine_Migration_Diff(dirname(__FILE__) . '/DC755/dc755_from.yml', dirname(__FILE__) . '/DC755/dc755_to.yml', $migration);
+		$changes =  $diff->generateChanges();
+		
+		$this->assertTrue(isset($changes['changed_columns']['755_test']['test_col']));
+		$this->assertFalse(isset($changes['created_tables']['755_test']));
+		$this->assertFalse(isset($changes['dropped_tables']['755_test']));
+		
+		$manager->setAttribute(Doctrine_Core::ATTR_MODEL_CLASS_PREFIX, $oldPrefix);
+	}
+	
 
-        $xml = $users->exportTo('xml'); 
-        $this->assertEqual($xml, '<?xml version="1.0" encoding="utf-8"?>'."\n".'<data><User id="4" type="0" email_id="1"><name>zYne</name><loginname></loginname><password></password><created></created><updated></updated><Phonenumber><Phonenumber id="2" entity_id="4"><phonenumber>123 123</phonenumber><Entity></Entity></Phonenumber></Phonenumber></User></data>'."\n");
-    }
 }

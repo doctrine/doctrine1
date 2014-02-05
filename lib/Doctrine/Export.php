@@ -1114,6 +1114,7 @@ class Doctrine_Export extends Doctrine_Connection_Module
                      'create_indexes'   => array(),
                      'alters'           => array(),
                      'create_triggers'  => array(),
+                     'comments'         => array(),
                  );
              }
 
@@ -1176,7 +1177,7 @@ class Doctrine_Export extends Doctrine_Connection_Module
          // Loop over all the sql again to merge everything together so it is in the correct order
          $build = array();
          foreach ($connections as $connectionName => $sql) {
-             $build[$connectionName] = array_unique(array_merge($sql['create_tables'], $sql['create_sequences'], $sql['create_indexes'], $sql['alters'], $sql['create_triggers']));
+             $build[$connectionName] = array_unique(array_merge($sql['create_tables'], $sql['create_sequences'], $sql['create_indexes'], $sql['alters'], $sql['create_triggers'], $sql['comments']));
          }
 
          if ( ! $groupByConnection) {

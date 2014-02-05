@@ -41,12 +41,12 @@ class Doctrine_Locking_Manager_Pessimistic
      *
      * @var Doctrine_Connection object
      */
-    private $conn;
+    protected $conn;
 
     /**
      * The database table name for the lock tracking
      */
-    private $_lockTable = 'doctrine_lock_tracking';
+    protected $_lockTable = 'doctrine_lock_tracking';
 
     /**
      * Constructs a new locking manager object
@@ -88,6 +88,29 @@ class Doctrine_Locking_Manager_Pessimistic
             }
         }
     }
+    
+    /**
+     * Get identifier of a record
+     * 
+     * @param Doctrine_Record $record
+     * @return mixed
+     */
+    protected function _getRecordIdentifier(Doctrine_Record $record)
+    {
+        $keyName = $record->getTable()->getIdentifier();
+        $key = null;
+        if (is_array($keyName)) {
+            // Composite key
+            $key = array();
+            foreach($keyName as $k) {
+               $key[] = $record->get( $k );
+            }
+            $key = implode('|', $key);
+        } else {
+            $key = $record->get( $keyName );
+        }
+        return $key;
+    }
 
     /**
      * Obtains a lock on a {@link Doctrine_Record}
@@ -101,15 +124,10 @@ class Doctrine_Locking_Manager_Pessimistic
     public function getLock(Doctrine_Record $record, $userIdent)
     {
         $objectType = $record->getTable()->getComponentName();
-        $key        = $record->getTable()->getIdentifier();
+        $key        = $this->_getRecordIdentifier($record);
 
         $gotLock = false;
         $time = time();
-
-        if (is_array($key)) {
-            // Composite key
-            $key = implode('|', $key);
-        }
 
         try {
             $dbh = $this->conn->getDbh();
@@ -170,7 +188,7 @@ class Doctrine_Locking_Manager_Pessimistic
     public function releaseLock(Doctrine_Record $record, $userIdent)
     {
         $objectType = $record->getTable()->getComponentName();
-        $key        = $record->getTable()->getIdentifier();
+        $key        = $this->_getRecordIdentifier($record);
 
         if (is_array($key)) {
             // Composite key
@@ -204,7 +222,7 @@ class Doctrine_Locking_Manager_Pessimistic
      * @return string              The unique user identifier for the specified lock
      * @throws Doctrine_Locking_Exception If the query failed due to database errors
      */
-    private function _getLockingUserIdent($objectType, $key)
+    protected function _getLockingUserIdent($objectType, $key)
     {
         if (is_array($key)) {
             // Composite key
@@ -241,7 +259,7 @@ class Doctrine_Locking_Manager_Pessimistic
     public function getLockOwner($lockedRecord)
     {
         $objectType = $lockedRecord->getTable()->getComponentName();
-        $key        = $lockedRecord->getTable()->getIdentifier();
+        $key        = $this->_getRecordIdentifier($lockedRecord);
         return $this->_getLockingUserIdent($objectType, $key);
     }
 

@@ -1462,7 +1462,28 @@ abstract class Doctrine_Record extends Doctrine_Record_Abstract implements Count
             $this->_values[$fieldName] = $value;
         } else if (array_key_exists($fieldName, $this->_data)) {
             $type = $this->_table->getTypeOf($fieldName);
-            if ($value instanceof Doctrine_Record) {
+
+            /**
+             * Code partially based on the code:
+             * http://kriswallsmith.net/post/136226720/doctrine-timestamps-and-user-timezones
+             * 
+             * and the code in the @see sfDoctrinePlugin::setDateTimeObject
+             */
+            if ($type == 'date' || $type == 'timestamp' || $type == 'datetime') {
+                
+                if ($value instanceof DateTime) {
+                    $value = $value->format('Y-m-d H:i:s');
+                } else if (is_numeric($value)) {
+                    $value = date('Y-m-d H:i:s', $value);
+                } else {
+                    $dt = date_create($value);
+
+					if ($dt instanceof DateTime) {
+						$value = $dt->format('Y-m-d H:i:s');
+					}
+                }
+
+            } else if ($value instanceof Doctrine_Record) {
                 $id = $value->getIncremented();
 
                 if ($id !== null && $type !== 'object') {

@@ -335,15 +335,14 @@ class Doctrine_Data_Import extends Doctrine_Data
         }
 
         $manager = Doctrine_Manager::getInstance();
-        foreach ($manager as $connection) {
-            $tree = $connection->unitOfWork->buildFlushTree(array_keys($array));
+        $connection = $manager->getCurrentConnection();
+        $tree = $connection->unitOfWork->buildFlushTree(array_keys($array));
 
-            foreach ($tree as $model) {
-                foreach ($this->_importedObjects as $obj) {
+        foreach ($tree as $model) {
+            foreach ($this->_importedObjects as $obj) {
 
-                    if ($obj instanceof $model) {
-                        $obj->save();
-                    }
+                if ($obj instanceof $model) {
+                    $obj->save();
                 }
             }
         }

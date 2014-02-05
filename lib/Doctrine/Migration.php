@@ -226,9 +226,9 @@ class Doctrine_Migration
     public function setCurrentVersion($number)
     {
         if ($this->hasMigrated()) {
-            $this->_connection->exec("UPDATE " . $this->_migrationTableName . " SET version = $number");
+            $this->_connection->exec("UPDATE " . $this->_connection->quoteIdentifier($this->_migrationTableName, true) . " SET " . $this->_connection->quoteIdentifier('version', true) . " = $number");
         } else {
-            $this->_connection->exec("INSERT INTO " . $this->_migrationTableName . " (version) VALUES ($number)");
+            $this->_connection->exec("INSERT INTO " . $this->_connection->quoteIdentifier($this->_migrationTableName, true) . " (" . $this->_connection->quoteIdentifier('version', true) . ") VALUES ($number)");
         }
     }
 
@@ -241,7 +241,7 @@ class Doctrine_Migration
     {
         $this->_createMigrationTable();
 
-        $result = $this->_connection->fetchColumn("SELECT version FROM " . $this->_migrationTableName);
+        $result = $this->_connection->fetchColumn("SELECT " . $this->_connection->quoteIdentifier('version', true) . " FROM " . $this->_connection->quoteIdentifier($this->_migrationTableName, true));
 
         return isset($result[0]) ? $result[0]:0;
     }
@@ -255,7 +255,7 @@ class Doctrine_Migration
     {
         $this->_createMigrationTable();
 
-        $result = $this->_connection->fetchColumn("SELECT version FROM " . $this->_migrationTableName);
+        $result = $this->_connection->fetchColumn("SELECT " . $this->_connection->quoteIdentifier('version', true) . " FROM " . $this->_connection->quoteIdentifier($this->_migrationTableName, true));
 
         return isset($result[0]) ? true:false;
     }

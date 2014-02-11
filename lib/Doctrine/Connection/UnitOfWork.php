@@ -60,8 +60,8 @@ class Doctrine_Connection_UnitOfWork extends Doctrine_Connection_Module
 
         $record->state($record->exists() ? Doctrine_Record::STATE_LOCKED : Doctrine_Record::STATE_TLOCKED);
 
+        $conn->beginInternalTransaction();
         try {
-            $conn->beginInternalTransaction();
             $record->state($state);
 
             $event = $record->invokeSaveHooks('pre', 'save');

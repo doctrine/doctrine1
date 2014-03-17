@@ -1336,7 +1336,8 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
 
         // Add the default orderBy statements defined in the relationships and table classes
         // Only do this for SELECT queries
-        if ($this->_type === self::SELECT) {
+        // modified by mh: exclude subqueries - ugly workaround for http://www.doctrine-project.org/jira/browse/DC-815
+        if (!$this->isSubquery() && $this->_type === self::SELECT) {
             foreach ($this->_queryComponents as $alias => $map) {
                 $sqlAlias = $this->getSqlTableAlias($alias);
                 if (isset($map['relation'])) {

@@ -871,12 +871,23 @@ class Doctrine_Collection extends Doctrine_Access implements Countable, Iterator
     /**
      * Compares two records. To be used on _snapshot diffs using array_udiff
      *
+	 * @throws Doctrine_Collection_Exception
+	 *
      * @param Doctrine_Record $a 
      * @param Doctrine_Record $b 
      * @return integer
      */
     protected function compareRecords($a, $b)
     {
+    	if(!$a instanceof Doctrine_Record)
+		{
+			throw new Doctrine_Collection_Exception('Doctrine_Record expected, %s given.', is_object($a) ? get_class($a) : gettype($a));
+		}
+    	if(!$b instanceof Doctrine_Record)
+		{
+			throw new Doctrine_Collection_Exception('Doctrine_Record expected, %s given.', is_object($b) ? get_class($b) : gettype($b));
+		}
+
         if ($a->getOid() == $b->getOid()) {
             return 0;
         }

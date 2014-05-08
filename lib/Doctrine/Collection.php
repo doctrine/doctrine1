@@ -881,11 +881,11 @@ class Doctrine_Collection extends Doctrine_Access implements Countable, Iterator
     {
     	if(!$a instanceof Doctrine_Record)
 		{
-			throw new Doctrine_Collection_Exception('Doctrine_Record expected, %s given.', is_object($a) ? get_class($a) : gettype($a));
+			throw new Doctrine_Collection_Exception(sprintf('Doctrine_Record expected, %s given.', is_object($a) ? get_class($a) : gettype($a)));
 		}
     	if(!$b instanceof Doctrine_Record)
 		{
-			throw new Doctrine_Collection_Exception('Doctrine_Record expected, %s given.', is_object($b) ? get_class($b) : gettype($b));
+			throw new Doctrine_Collection_Exception(sprintf('Doctrine_Record expected, %s given.', is_object($b) ? get_class($b) : gettype($b)));
 		}
 
         if ($a->getOid() == $b->getOid()) {

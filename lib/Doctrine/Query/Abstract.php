@@ -1368,7 +1368,7 @@ abstract class Doctrine_Query_Abstract
     {
         // if there's no params, return (else we'll get a WHERE IN (), invalid SQL)
         if (isset($params) and (count($params) == 0)) {
-            return $this;
+            return $this->andWhere('false');
         }
 
         if ($this->_hasDqlQueryPart('where')) {

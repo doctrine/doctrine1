@@ -92,19 +92,7 @@ class Doctrine_Query_Where_TestCase extends Doctrine_UnitTestCase
         $this->assertEqual($accounts[0]->amount, 1000);
     }
 
-    public function testAndWhereIsWithEmptyList()
-    {
-        $q = new Doctrine_Query();
-
-        $q->from('User')->andWhereIn('id', array());
-
-        $this->assertIdentical(
-            array('false'),
-            $q->getDqlPart('where')
-        );
-    }
-
-    public function testDirectMultipleParameterSetting()
+    public function testDirectMultipleParameterSetting() 
     {
         $user = new User();
         $user->name = 'someone.2';

@@ -1368,6 +1368,15 @@ abstract class Doctrine_Query_Abstract
     {
         // if there's no params, return (else we'll get a WHERE IN (), invalid SQL)
         if (isset($params) and (count($params) == 0)) {
+            // Semantically this error should have the level of E_USER_NOTICE,
+            // however, introducing a new E_USER_NOTICE may lead to a change of behavior.
+            // E_USER_DEPRECATED, on the other side, are very likely to be silenced
+            // anyway, and are expected to appear just by upgrading.
+            trigger_error(
+            	'andWhereIn with an empty array is counter-intuitive,'
+            	.' see https://github.com/drak/doctrine1/pull/15',
+            	E_USER_DEPRECATED
+            );
             return $this;
         }
 

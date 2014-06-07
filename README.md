@@ -21,4 +21,5 @@ and `dev-master` for the backwards-compatible one:
 
 ## List of backwards-incompatible changes on `dev`
 
-* `whereIn` with an empty array now returns nothing (see #15)
+* `whereIn` with an empty array now restricts query to returning nothing instead of returning
+everything ([issue #15](https://github.com/drak/doctrine1/pull/15))

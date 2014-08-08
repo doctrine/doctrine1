@@ -158,6 +158,11 @@ class Doctrine_Collection extends Doctrine_Access implements Countable, Iterator
         unset($vars['expanded']);
         unset($vars['generator']);
 
+        // added by mh
+        unset($vars['_snapshot']); // losing functionality of keeping a state of modified records
+        unset($vars['_locator']);
+        unset($vars['_resources']);
+
         $vars['_table'] = $vars['_table']->getComponentName();
 
         return serialize($vars);

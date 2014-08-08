@@ -790,19 +790,14 @@ abstract class Doctrine_Record extends Doctrine_Record_Abstract implements Count
         }
     }
 
-    /**
-     * serialize
-     * this method is automatically called when an instance of Doctrine_Record is serialized
-     *
-     * @return string
-     */
-    public function serialize()
-    {
-        $event = new Doctrine_Event($this, Doctrine_Event::RECORD_SERIALIZE);
-
-        $this->preSerialize($event);
-        $this->getTable()->getRecordListener()->preSerialize($event);
-
+	/**
+	 * Get array of vars for serialization of the record
+	 * override this method and modify vars array when necessary
+	 *
+	 * @return array
+	 */
+	public function getSerializeVars()
+	{
         $vars = get_object_vars($this);
 
         if ( ! $this->serializeReferences()) {
@@ -842,6 +837,35 @@ abstract class Doctrine_Record extends Doctrine_Record_Abstract implements Count
             }
         }
 
+        // added by mh
+        // store less data in cache, but lose functionality of keeping a state of modified records
+        unset($vars['_lastModified']);
+        unset($vars['_modified']);
+        unset($vars['_oldValues']);
+        unset($vars['_pendingDeletes']);
+        unset($vars['_pendingUnlinks']);
+        unset($vars['_invokedSaveHooks']);
+        unset($vars['_oid']);
+        unset($vars['_locator']);
+        unset($vars['_resources']);
+
+		return $vars;
+	}
+
+    /**
+     * serialize
+     * this method is automatically called when an instance of Doctrine_Record is serialized
+     *
+     * @return string
+     */
+    public function serialize()
+    {
+        $event = new Doctrine_Event($this, Doctrine_Event::RECORD_SERIALIZE);
+
+        $this->preSerialize($event);
+        $this->getTable()->getRecordListener()->preSerialize($event);
+
+		$vars = $this->getSerializeVars();
         $str = serialize($vars);
 
         $this->postSerialize($event);

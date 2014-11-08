@@ -1660,6 +1660,8 @@ abstract class Doctrine_Query_Abstract
      */
     public function innerJoin($join, $params = array())
     {
+        $this->checkIfCanJoin();
+
         if (is_array($params)) {
             $this->_params['join'] = array_merge($this->_params['join'], $params);
         } else {
@@ -1678,6 +1680,8 @@ abstract class Doctrine_Query_Abstract
      */
     public function leftJoin($join, $params = array())
     {
+        $this->checkIfCanJoin();
+
         if (is_array($params)) {
             $this->_params['join'] = array_merge($this->_params['join'], $params);
         } else {
@@ -2176,5 +2180,18 @@ abstract class Doctrine_Query_Abstract
     public function setDisableLimitSubquery($disableLimitSubquery)
     {
         $this->disableLimitSubquery = $disableLimitSubquery;
+    }
+
+    private function checkIfCanJoin()
+    {
+        // Joins in Updates and Deletes are not SQL standard,
+        // Doctrine does not support them even on supporting databases:
+        // http://www.doctrine-project.org/jira/browse/DC-202
+        if ($this->getType() !== self::SELECT) {
+            trigger_error(
+                'Joins are only supported with SELECTs',
+                E_USER_DEPRECATED
+            );
+        }
     }
 }

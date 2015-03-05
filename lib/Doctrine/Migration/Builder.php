@@ -504,13 +504,13 @@ END;
 
             $path = $this->getMigrationsPath() . DIRECTORY_SEPARATOR . $fileName;
             if (class_exists($className) || file_exists($path)) {
-                $this->migration->loadMigrationClass($className);
+                $this->migration->loadMigrationClass($next, $className);
                 return false;
             }
 
             file_put_contents($path, $class);
             require_once($path);
-            $this->migration->loadMigrationClass($className);
+            $this->migration->loadMigrationClass($next, $className);
 
             return true;
         }

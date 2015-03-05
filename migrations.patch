@@ -1,0 +1,358 @@
+Index: lib/Doctrine/Migration.php
+===================================================================
+--- lib/Doctrine/Migration.php	(revision 7106)
++++ lib/Doctrine/Migration.php	(working copy)
+@@ -41,7 +41,8 @@
+               $_migrationClasses = array(),
+               $_reflectionClass,
+               $_errors = array(),
+-              $_process;
++              $_process,
++              $_migrationClassCount = 0;
+
+     protected static $_migrationClassesForDirectories = array();
+
+@@ -76,6 +77,8 @@
+
+             $this->loadMigrationClassesFromDirectory();
+         }
++
++        $this->_migrationClassCount = count($this->_migrationClasses);
+     }
+
+     public function getConnection()
+@@ -161,8 +164,8 @@
+             }
+         }
+         ksort($classesToLoad);
+-        foreach ($classesToLoad as $class) {
+-            $this->loadMigrationClass($class['className'], $class['path']);
++        foreach ($classesToLoad as $key => $class) {
++            $this->loadMigrationClass($key, $class['className'], $class['path']);
+         }
+     }
+
+@@ -171,10 +174,12 @@
+      * migration classes to execute. It must be a child of Doctrine_Migration in order
+      * to be loaded.
+      *
++     * @param int $timestamp
+      * @param string $name
++     * @param string $path
+      * @return void
+      */
+-    public function loadMigrationClass($name, $path = null)
++    public function loadMigrationClass($timestamp, $name, $path = null)
+     {
+         $class = new ReflectionClass($name);
+
+@@ -190,19 +195,11 @@
+             return false;
+         }
+
+-        if (empty($this->_migrationClasses)) {
+-            $classMigrationNum = 1;
+-        } else {
+-            $nums = array_keys($this->_migrationClasses);
+-            $num = end($nums);
+-            $classMigrationNum = $num + 1;
+-        }
+-
+-        $this->_migrationClasses[$classMigrationNum] = $name;
+-
++        $this->_migrationClasses[$timestamp] = $name;
++
+         if ($path) {
+             $dir = dirname($path);
+-            self::$_migrationClassesForDirectories[$dir][$classMigrationNum] = $name;
++            self::$_migrationClassesForDirectories[$dir][$timestamp] = $name;
+         }
+     }
+
+@@ -218,70 +215,63 @@
+     }
+
+     /**
+-     * Set the current version of the database
++     * Add (up) a run migration to the migration table
+      *
+-     * @param integer $number
++     * @param integer $timestamp
+      * @return void
+      */
+-    public function setCurrentVersion($number)
++    public function addMigration($timestamp, $class_name = null)
+     {
+-        if ($this->hasMigrated()) {
+-            $this->_connection->exec("UPDATE " . $this->_migrationTableName . " SET version = $number");
+-        } else {
+-            $this->_connection->exec("INSERT INTO " . $this->_migrationTableName . " (version) VALUES ($number)");
+-        }
++        $this->_connection->exec("INSERT INTO " . $this->_migrationTableName . " (timestamp_value, class_name) VALUES ({$timestamp}, '{$class_name}')");
+     }
+-
++
+     /**
+-     * Get the current version of the database
++     * Remove (down) a run migration to the migration table
+      *
+-     * @return integer $version
++     * @param integer $timestamp
++     * @return void
+      */
+-    public function getCurrentVersion()
++    public function removeMigration($timestamp)
+     {
+-        $this->_createMigrationTable();
+-
+-        $result = $this->_connection->fetchColumn("SELECT version FROM " . $this->_migrationTableName);
+-
+-        return isset($result[0]) ? $result[0]:0;
++        $this->_connection->exec("DELETE FROM " . $this->_migrationTableName . " WHERE timestamp_value = {$timestamp}");
+     }
+
++
++
+     /**
+-     * hReturns true/false for whether or not this database has been migrated in the past
++     * Get the current version of the database
+      *
+-     * @return boolean $migrated
++     * @return integer $timestamps
+      */
+-    public function hasMigrated()
++    public function getCurrentMigrations()
+     {
+         $this->_createMigrationTable();
+
+-        $result = $this->_connection->fetchColumn("SELECT version FROM " . $this->_migrationTableName);
+-
+-        return isset($result[0]) ? true:false;
++        $result = $this->_connection->fetchColumn("SELECT timestamp_value FROM " . $this->_migrationTableName);
++
++        if(count($result) > 0) {
++            return $result;
++        } else {
++            return false;
++        }
+     }
+
+     /**
+-     * Gets the latest possible version from the loaded migration classes
++     * hReturns true/false for whether or not this database has been migrated in the past
+      *
+-     * @return integer $latestVersion
++     * @return boolean $migrated
+      */
+-    public function getLatestVersion()
++    public function hasMigrated($timestamp = null)
+     {
+-        $versions = array_keys($this->_migrationClasses);
+-        rsort($versions);
++        $this->_createMigrationTable();
+
+-        return isset($versions[0]) ? $versions[0]:0;
+-    }
++        $query = "SELECT timestamp_value FROM " . $this->_migrationTableName;
++        if(!empty($timestamp)) {
++            $query .= " WHERE timestamp_value = '" . $timestamp . "'";
++        }
++        $result = $this->_connection->fetchColumn($query);
+
+-    /**
+-     * Get the next incremented version number based on the latest version number
+-     * using getLatestVersion()
+-     *
+-     * @return integer $nextVersion
+-     */
+-    public function getNextVersion()
+-    {
+-        return $this->getLatestVersion() + 1;
++        return isset($result[0]) ? true:false;
+     }
+
+     /**
+@@ -292,14 +282,12 @@
+     public function getNextMigrationClassVersion()
+     {
+         if (empty($this->_migrationClasses)) {
+-            return 1;
++            return 0;
+         } else {
+-            $nums = array_keys($this->_migrationClasses);
+-            $num = end($nums) + 1;
+-            return $num;
++            return ++$this->_migrationClassCount;
+         }
+     }
+-
++
+     /**
+      * Perform a migration process by specifying the migration number/version to
+      * migrate to. It will automatically know whether you are migrating up or down
+@@ -316,12 +304,6 @@
+         $this->_connection->beginTransaction();
+
+         try {
+-            // If nothing specified then lets assume we are migrating from
+-            // the current version to the latest version
+-            if ($to === null) {
+-                $to = $this->getLatestVersion();
+-            }
+-
+             $this->_doMigrate($to);
+         } catch (Exception $e) {
+             $this->addError($e);
+@@ -341,12 +323,11 @@
+                 if ($this->hasErrors()) {
+                     return false;
+                 } else {
+-                    return $to;
++                    return true;
+                 }
+             } else {
+                 $this->_connection->commit();
+-                $this->setCurrentVersion($to);
+-                return $to;
++                return true;
+             }
+         }
+         return false;
+@@ -461,26 +442,55 @@
+      * @return integer $to
+      * @throws Doctrine_Exception
+      */
+-    protected function _doMigrate($to)
++    protected function _doMigrate($to = null)
+     {
+         $this->_createMigrationTable();
+
+-        $from = $this->getCurrentVersion();
++        $query = "SELECT timestamp_value FROM ". $this->_migrationTableName . " ORDER BY timestamp_value ASC ";
++        $pastMigrations = $this->_connection->fetchColumn($query);
++
++        $notRunMigrations = array_diff(array_keys($this->_migrationClasses), $pastMigrations);
+
+-        if ($from == $to) {
+-            throw new Doctrine_Migration_Exception('Already at version # ' . $to);
++        if(in_array($to, $pastMigrations)) {
++            $direction = 'down';
++        } else {
++            $direction = 'up';
+         }
+-
+-        $direction = $from > $to ? 'down':'up';
+-
+-        if ($direction === 'up') {
+-            for ($i = $from + 1; $i <= $to; $i++) {
+-                $this->_doMigrateStep($direction, $i);
++
++        if(!empty($notRunMigrations) && $direction === 'up') {
++            // We have migrations that we haven't yet run
++
++            // run them all
++            foreach($notRunMigrations as $migrationKey) {
++                $run = false;
++                if(isset($to) && $migrationKey <= $to) {
++                    $run = true;
++                } else if (!isset($to)) {
++                    $run = true;
++                } else {
++                    // skip
++                }
++
++                if($run) {
++                    $this->_doMigrateStep('up', $migrationKey);
++                    $this->addMigration($migrationKey, $this->_migrationClasses[$migrationKey]);
++                }
+             }
+-        } else {
+-            for ($i = $from; $i > $to; $i--) {
+-                $this->_doMigrateStep($direction, $i);
++        } else if ($direction === 'down') {
++            if(!isset($to)) {
++                throw new Doctrine_migration_Exception('To go down, you must provide the timestamp of the migration!');
+             }
++
++            rsort($pastMigrations);
++
++            foreach($pastMigrations as $migrationKey) {
++                if($migrationKey > $to) {
++                    $this->_doMigrateStep('down', $migrationKey);
++                    $this->removeMigration($migrationKey);
++                }
++            }
++        } else {
++            throw new Doctrine_Migration_Exception('No new migrations to run');
+         }
+
+         return $to;
+@@ -551,7 +561,11 @@
+         $this->_migrationTableCreated = true;
+
+         try {
+-            $this->_connection->export->createTable($this->_migrationTableName, array('version' => array('type' => 'integer', 'size' => 11)));
++            $this->_connection->export->createTable($this->_migrationTableName,
++                array(
++                      'timestamp_value' => array('type' => 'integer', 'size' => 11),
++                      'class_name' => array('type' => 'string', 'size' => '255')
++                ));
+
+             return true;
+         } catch(Exception $e) {
+Index: lib/Doctrine/Task/Migrate.php
+===================================================================
+--- lib/Doctrine/Task/Migrate.php	(revision 7106)
++++ lib/Doctrine/Task/Migrate.php	(working copy)
+@@ -34,12 +34,27 @@
+ {
+     public $description          =   'Migrate database to latest version or the specified version',
+            $requiredArguments    =   array('migrations_path' => 'Specify path to your migrations directory.'),
+-           $optionalArguments    =   array('version' => 'Version to migrate to. If you do not specify, the db will be migrated from the current version to the latest.');
++           $optionalArguments    =   array('timestamp' => 'Timestamp to migrate to. If you do not specify, the db will be migrated from the current version to the latest.  Provide \'-1\' to list past migrations.');
+
+     public function execute()
+     {
+-        $version = Doctrine_Core::migrate($this->getArgument('migrations_path'), $this->getArgument('version'));
++        if($this->getArgument('timestamp') == -1) {
++            $conn = Doctrine_Manager::connection();
++            $m = new Doctrine_Migration();
++            $existingMigrations = $conn->fetchAll("SELECT timestamp_value, class_name FROM " . $m->getTableName() . " ORDER BY timestamp_value ASC");
++            if(empty($existingMigrations)) {
++                $this->notify('No migrations have occurred yet.');
++            } else {
++                $output = "";
++                foreach($existingMigrations as $migration) {
++                    $output .= "\n{$migration['timestamp_value']} - {$migration['class_name']}";
++                }
++                $this->notify($output);
++            }
++        } else {
++            $version = Doctrine_Core::migrate($this->getArgument('migrations_path'), $this->getArgument('timestamp'));
+
+-        $this->notify('migrated successfully to version #' . $version);
++            $this->notify('migrated successfully');
++        }
+     }
+ }
+\ No newline at end of file
+Index: lib/Doctrine/Migration/Builder.php
+===================================================================
+--- lib/Doctrine/Migration/Builder.php	(revision 7106)
++++ lib/Doctrine/Migration/Builder.php	(working copy)
+@@ -504,13 +504,13 @@
+
+             $path = $this->getMigrationsPath() . DIRECTORY_SEPARATOR . $fileName;
+             if (class_exists($className) || file_exists($path)) {
+-                $this->migration->loadMigrationClass($className);
++                $this->migration->loadMigrationClass($next, $className);
+                 return false;
+             }
+
+             file_put_contents($path, $class);
+             require_once($path);
+-            $this->migration->loadMigrationClass($className);
++            $this->migration->loadMigrationClass($next, $className);
+
+             return true;
+         }

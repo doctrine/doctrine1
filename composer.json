@@ -1,5 +1,5 @@
 {
-    "name": "drak/doctrine1",
+    "name": "artyfarty/doctrine1",
     "type": "library",
     "description": "PHP5 Database ORM",
     "keywords": ["orm", "database"],
@@ -10,7 +10,7 @@
         {"name": "Jonathan Wage", "email": "jonwage@gmail.com"}
     ],
     "require": {
-        "php": ">=5.2.3",
+        "php": ">=5.4",
         "ext-pdo": "*"
     },
     "autoload": {

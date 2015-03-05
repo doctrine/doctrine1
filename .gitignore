@@ -1,2 +1,3 @@
 tests/DoctrineTest/doctrine_tests/*
 vendor/
+.idea

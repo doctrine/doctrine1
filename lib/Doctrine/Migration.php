@@ -34,6 +34,9 @@
  */
 class Doctrine_Migration
 {
+    /**
+     * @var Doctrine_Connection $_connection
+     */
     protected $_migrationTableName = 'migration_versions',
               $_migrationTableCreated = false,
               $_connection,
@@ -510,9 +513,19 @@ class Doctrine_Migration
         if(!empty($notRunMigrations)) {
             // We have migrations that we haven't yet run
 
+            $migVer = $this->_connection->fetchColumn("SELECT version FROM migration_version");
+            $migVer = isset($migVer[0]) ? $migVer[0]:0;
+
+            $curVer = 0;
+
             // run them all
             foreach($notRunMigrations as $migrationKey) {
+                if ($curVer >= $migVer) {
+                    break;
+                }
+
                 $this->addMigration($migrationKey, $this->_migrationClasses[$migrationKey]);
+                $curVer++;
             }
         }
     }

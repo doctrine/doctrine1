@@ -1,5 +1,5 @@
 {
-    "name": "dmitrydyomin/doctrine1",
+    "name": "zfbase/doctrine1",
     "type": "library",
     "description": "PHP5 Database ORM",
     "keywords": ["orm", "database"],

@@ -118,7 +118,7 @@ class Doctrine_Ticket_DC302_TestCase extends Doctrine_UnitTestCase
 
         $events = $profiler->getAll();
         $event = array_pop($events);
-        $this->assertEqual($event->getQuery(), 'SELECT ticket__d_c302__role.id AS ticket__d_c302__role__id, ticket__d_c302__role.name AS ticket__d_c302__role__name, ticket__d_c302__role_reference.id_role_parent AS ticket__d_c302__role_reference__id_role_parent, ticket__d_c302__role_reference.id_role_child AS ticket__d_c302__role_reference__id_role_child, ticket__d_c302__role_reference.position AS ticket__d_c302__role_reference__position FROM ticket__d_c302__role INNER JOIN ticket__d_c302__role_reference ON ticket__d_c302__role.id = ticket__d_c302__role_reference.id_role_parent WHERE ticket__d_c302__role.id IN (SELECT id_role_parent FROM ticket__d_c302__role_reference WHERE id_role_child = ?) ORDER BY position');
+        $this->assertEqual($event->getQuery(), 'SELECT ticket__d_c302__role.id AS ticket__d_c302__role__id, ticket__d_c302__role.name AS ticket__d_c302__role__name, ticket__d_c302__role_reference.id_role_parent AS ticket__d_c302__role_reference__id_role_parent, ticket__d_c302__role_reference.id_role_child AS ticket__d_c302__role_reference__id_role_child, ticket__d_c302__role_reference.position AS ticket__d_c302__role_reference__position FROM ticket__d_c302__role INNER JOIN ticket__d_c302__role_reference ON ticket__d_c302__role.id = ticket__d_c302__role_reference.id_role_parent WHERE ticket__d_c302__role.id IN (SELECT id_role_parent FROM ticket__d_c302__role_reference WHERE id_role_child = ?) AND ticket__d_c302__role_reference.id_role_child = ? ORDER BY position');
     }
 }
 

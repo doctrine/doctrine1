@@ -67,6 +67,10 @@ class Doctrine_Relation_Nest extends Doctrine_Relation_Association
             $q->select('{'.$tableName.'.*}, {'.$assocTable.'.*}')
               ->from($formatter->quoteIdentifier($tableName) . ' INNER JOIN ' . $formatter->quoteIdentifier($assocTable) . ' ON ' . implode(' OR ', $joinCondition))
               ->where(implode(' OR ', $condition));
+            // added by mh to fix non-equal nested relations, which have orderBy by refClass's column defined, in case that records related to current record have relations between them
+            if (!$this->definition['equal']) {
+                $q->andWhere($formatter->quoteIdentifier($assocTable) . '.' . $formatter->quoteIdentifier($this->getLocalRefColumnName()) . ' = ?', array($id));
+            }
             if ($orderBy = $this->getOrderByStatement($tableName, true)) {
                 $q->addOrderBy($orderBy);
             } else {

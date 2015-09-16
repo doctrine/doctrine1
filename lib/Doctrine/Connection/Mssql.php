@@ -332,8 +332,9 @@ class Doctrine_Connection_Mssql extends Doctrine_Connection_Common
             $query = preg_replace($re, "\\1##{$key}##", $query, 1);
         }
 
-        $query = preg_replace_callback('/##(\d+)##/', function($m) use ($params) {
-            return (null === $params[$m[1]]) ? 'NULL' : $this->quote($params[$m[1]]);
+        $self = $this;
+        $query = preg_replace_callback('/##(\d+)##/', function($m) use ($params, $self) {
+            return (null === $params[$m[1]]) ? 'NULL' : $self->quote($params[$m[1]]);
         }, $query);
 
         return $query;

@@ -496,7 +496,7 @@ class Doctrine_Record_TestCase extends Doctrine_UnitTestCase
 
     public function testUniqueKeyComponent()
     {
-        $e = new Error();
+        $e = new TestError();
         $e->message  = 'user error';
         $e->file_md5 = md5(0);
         $e->code     = 1;
@@ -506,7 +506,7 @@ class Doctrine_Record_TestCase extends Doctrine_UnitTestCase
         $this->assertEqual($e->file_md5, md5(0));
         $this->assertEqual($e->message, 'user error');
 
-        $e2 = new Error();
+        $e2 = new TestError();
         $e2->message  = 'user error2';
         $e2->file_md5 = md5(1);
         $e2->code     = 2;
@@ -536,7 +536,7 @@ class Doctrine_Record_TestCase extends Doctrine_UnitTestCase
 
         $e->save();
 
-        $coll = $this->connection->query('FROM Error');
+        $coll = $this->connection->query('FROM TestError');
         $e = $coll[0];
 
 

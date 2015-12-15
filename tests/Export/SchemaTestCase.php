@@ -43,7 +43,7 @@ class Doctrine_Export_Schema_TestCase extends Doctrine_UnitTestCase
                       'Album',
                       'Song',
                       'Element',
-                      'Error',
+                      'TestError',
                       'Description',
                       'Address',
                       'Account',

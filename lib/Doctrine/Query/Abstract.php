@@ -1117,9 +1117,9 @@ abstract class Doctrine_Query_Abstract
                 // Trigger preDql*() callback event
                 $params = array('component' => $component, 'alias' => $alias);
                 $event = new Doctrine_Event($record, $callback['const'], $this, $params);
-
-                $record->$callback['callback']($event);
-                $table->getRecordListener()->$callback['callback']($event);
+                
+                $record->{$callback['callback']}($event);
+                $table->getRecordListener()->{$callback['callback']}($event);
             }
         }
 

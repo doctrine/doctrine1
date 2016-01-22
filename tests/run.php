@@ -15,7 +15,8 @@ $excludeTickets = array(
     '1935',
     '2015',
     '2292',
-    'DC521' // PostgreSQL specific error
+    'DC521', // PostgreSQL specific error
+    'DC240', // replaced with OV1 after fixing relation orderBy handling in Doctrine_Query
 );
 
 $ticketTestCases = glob(dirname(__FILE__) . '/Ticket/*TestCase.php');

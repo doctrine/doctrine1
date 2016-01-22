@@ -1341,24 +1341,32 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
             foreach ($this->_queryComponents as $alias => $map) {
                 $sqlAlias = $this->getSqlTableAlias($alias);
                 if (isset($map['relation'])) {
-					if (isset($map['ref'])) {
-						$orderBy = $map['relation']['refTable']->processOrderBy($sqlAlias, $map['relation']['orderBy'], true);
-						if ($map['relation']['orderBy'] && $orderBy == $map['relation']['orderBy']) {
-							$orderBy = $map['relation']->getOrderByStatement($sqlAlias, true);
-						}
-					} else {
-						$orderBy = $map['relation']->getOrderByStatement($sqlAlias, true);
-						if ($orderBy == $map['relation']['orderBy']) {
-							$orderBy = null;
-						}
-					}
+                    if (isset($map['ref'])) {
+                        // fix for DC-651 already applied (Doctrine_Record::option('orderBy', ...) of join's right side being applied to refTable in m2m relationship)
+                        // modified by mh [WARNING BC BREAK] for ordering m2m relations by columns in refClass use refOrderBy!
+                        // fix for OV1
+                        if(!empty($map['relation']['refOrderBy'])) {
+                            $orderBy = $map['relation']['refTable']->processOrderBy($sqlAlias, $map['relation']['refOrderBy'], true);
+                            if ($orderBy == $map['relation']['refOrderBy']) {
+                                $orderBy = null;
+                            }
+                        } else {
+                            $orderBy = $map['relation']['refTable']->getOrderByStatement($sqlAlias, true);
+                        }
+                    } else {
+                        $orderBy = $map['relation']->getOrderByStatement($sqlAlias, true);
+                        if ($orderBy == $map['relation']['orderBy']) {
+                            $orderBy = null;
+                        }
+                    }
                 } else {
                     $orderBy = $map['table']->getOrderByStatement($sqlAlias, true);
                 }
 
                 if ($orderBy) {
                     $e = explode(',', $orderBy);
-                    $e = array_map('trim', $e);
+                    // modified by mh - added quoteIdentifier
+                    $e = array_map(array($this->_conn, 'quoteIdentifier'), array_map('trim', $e));
                     foreach ($e as $v) {
                         if ( ! in_array($v, $this->_sqlParts['orderby'])) {
                             $this->_sqlParts['orderby'][] = $v;

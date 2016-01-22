@@ -59,7 +59,9 @@ class Doctrine_Relation_OrderBy_TestCase extends Doctrine_UnitTestCase
             ->leftJoin('u.ChildrenUsers cu')
             ->leftJoin('u.ParentUser pu');
 
-        $this->assertEqual($q->getSqlQuery(), 'SELECT o.id AS o__id FROM order_by_test__user o LEFT JOIN order_by_test__article o2 ON o.id = o2.user_id LEFT JOIN order_by_test__user_group o4 ON (o.id = o4.user_id) LEFT JOIN order_by_test__group o3 ON o3.id = o4.group_id LEFT JOIN order_by_test__friend o6 ON (o.id = o6.user_id1 OR o.id = o6.user_id2) LEFT JOIN order_by_test__user o5 ON (o5.id = o6.user_id2 OR o5.id = o6.user_id1) AND o5.id != o.id LEFT JOIN order_by_test__user o7 ON o.id = o7.parent_user_id LEFT JOIN order_by_test__user o8 ON o.parent_user_id = o8.id ORDER BY o2.title ASC, o3.name ASC, o4.name ASC, o5.login ASC, o6.login ASC, o7.login ASC, o8.id ASC');
+        // fixed resulting SQL as it's now fixed with OV1.
+        // previously the query would throw an exception if executed on real database - orderby definition included non-existing columns (columns in wrong tables)
+        $this->assertEqual($q->getSqlQuery(), 'SELECT o.id AS o__id FROM order_by_test__user o LEFT JOIN order_by_test__article o2 ON o.id = o2.user_id LEFT JOIN order_by_test__user_group o4 ON (o.id = o4.user_id) LEFT JOIN order_by_test__group o3 ON o3.id = o4.group_id LEFT JOIN order_by_test__friend o6 ON (o.id = o6.user_id1 OR o.id = o6.user_id2) LEFT JOIN order_by_test__user o5 ON (o5.id = o6.user_id2 OR o5.id = o6.user_id1) AND o5.id != o.id LEFT JOIN order_by_test__user o7 ON o.id = o7.parent_user_id LEFT JOIN order_by_test__user o8 ON o.parent_user_id = o8.id ORDER BY o2.title ASC, o3.name ASC, o5.login ASC, o7.login ASC, o8.id ASC');
     }
 
     public function testLazyLoadingQueries()

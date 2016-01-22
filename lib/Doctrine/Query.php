@@ -145,6 +145,12 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
     protected $_neededTables = array();
 
     /**
+     * @var array $_fromAliases             an array containing table aliases used in FROM part
+     *                                      - fix for DC-815 (Model's default sorting breaks subqueries)
+     */
+    protected $_fromAliases = array();
+
+    /**
      * @var array $pendingSubqueries        SELECT part subqueries, these are called pending subqueries since
      *                                      they cannot be parsed directly (some queries might be correlated)
      */
@@ -1336,10 +1342,18 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
 
         // Add the default orderBy statements defined in the relationships and table classes
         // Only do this for SELECT queries
-        // modified by mh: exclude subqueries - ugly workaround for http://www.doctrine-project.org/jira/browse/DC-815
-        if (!$this->isSubquery() && $this->_type === self::SELECT) {
+        if ($this->_type === self::SELECT) {
             foreach ($this->_queryComponents as $alias => $map) {
                 $sqlAlias = $this->getSqlTableAlias($alias);
+
+                // added by mh
+                // fix for DC-815 (Model's default sorting breaks subqueries)
+                if (!in_array($sqlAlias, $this->_fromAliases)) {
+                    // this component is not from this query scope
+                    // e.g. this is subquery and alias is from outer query or vice versa
+                    continue;
+                }
+
                 if (isset($map['relation'])) {
                     if (isset($map['ref'])) {
                         // fix for DC-651 already applied (Doctrine_Record::option('orderBy', ...) of join's right side being applied to refTable in m2m relationship)
@@ -1846,6 +1860,8 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
                     $queryPart .= ')';
 
                     $this->_sqlParts['from'][] = $queryPart;
+                    // fix for DC-815 (Model's default sorting breaks subqueries)
+                    $this->_fromAliases[] = $assocAlias;
 
                     $queryPart = $join . $foreignSql;
 
@@ -1858,6 +1874,8 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
 
                 $queryPart .= $this->buildInheritanceJoinSql($table->getComponentName(), $componentAlias);
                 $this->_sqlParts['from'][$componentAlias] = $queryPart;
+                // fix for DC-815 (Model's default sorting breaks subqueries)
+                $this->_fromAliases[] = $foreignAlias;
 
                 if ( ! empty($joinCondition)) {
                     $this->addPendingJoinCondition($componentAlias, $joinCondition);
@@ -1993,6 +2011,8 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
         $queryPart .= $this->buildInheritanceJoinSql($name, $componentAlias);
 
         $this->_sqlParts['from'][] = $queryPart;
+        // fix for DC-815 (Model's default sorting breaks subqueries)
+        $this->_fromAliases[] = $tableAlias;
 
         $this->_queryComponents[$componentAlias] = array('table' => $table, 'map' => null);
 

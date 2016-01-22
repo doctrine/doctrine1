@@ -67,6 +67,15 @@ class Doctrine_Ticket_OV1_TestCase extends Doctrine_UnitTestCase
         $this->conn->setAttribute(Doctrine_Core::ATTR_QUOTE_IDENTIFIER, false);
     }
 
+    public function testSubqueryTest()
+    {
+        $q = Doctrine_Query::create()
+            ->from('Ticket_OV1_Role r')
+            ->where('r.id IN (SELECT rr.id_role_parent FROM Ticket_OV1_RoleReference rr)');
+
+        $this->assertEqual($q->getSqlQuery(), 'SELECT t.id AS t__id, t.name AS t__name FROM ticket__o_v1__role t WHERE (t.id IN (SELECT t2.id_role_parent AS t2__id_role_parent FROM ticket__o_v1__role_reference t2 ORDER BY t2.position DESC))');
+    }
+
 }
 
 class Ticket_OV1_User extends Doctrine_Record

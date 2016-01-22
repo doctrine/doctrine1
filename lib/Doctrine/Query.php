@@ -1071,7 +1071,14 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
             } else {
                 if (substr($part, 0, 9) === 'LEFT JOIN') {
                     $aliases = array_merge($this->_subqueryAliases,
-                                array_keys($this->_neededTables));
+                    // WTF? by mh - shouldn't it be just array values? $this->_neededTable is like array('c', 'm', 'm2', 'm4')
+                    // otherwise the following condition does not make sense - it checks in_array of table alias in array of integers (from array_keys)
+                                //array_keys($this->_neededTables));
+                                $this->_neededTables);
+
+                    // well, the condition also fails if ATTR_QUOTE_IDENTIFIERS is used. $e[3] might be "`m`" and in $aliases there is just "m"
+                    // so let's quote aliases
+                    $aliases = array_map(array($this->_conn, 'quoteIdentifier'), $aliases);
 
                     if ( ! in_array($e[3], $aliases) && ! in_array($e[2], $aliases) && ! empty($this->_pendingFields)) {
                         continue;

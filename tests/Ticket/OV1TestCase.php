@@ -46,21 +46,25 @@ class Doctrine_Ticket_OV1_TestCase extends Doctrine_UnitTestCase
     public function testTest()
     {
         $q = Doctrine_Query::create()
-        	->from('Ticket_OV1_User u')
-        	->leftJoin('u.Roles r')
-        	->leftJoin('r.Parents p')
-        	->orderBy('username ASC');
+            ->from('Ticket_OV1_User u')
+            ->leftJoin('u.Roles r')
+            ->leftJoin('r.Parents p')
+            ->orderBy('username ASC');
 
         $this->assertEqual($q->getSqlQuery(), 'SELECT t.id AS t__id, t.username AS t__username, t.password AS t__password, t2.id AS t2__id, t2.name AS t2__name, t4.id AS t4__id, t4.name AS t4__name FROM ticket__o_v1__user t LEFT JOIN ticket__o_v1__user_role t3 ON (t.id = t3.id_user) LEFT JOIN ticket__o_v1__role t2 ON t2.id = t3.id_role LEFT JOIN ticket__o_v1__role_reference t5 ON (t2.id = t5.id_role_child) LEFT JOIN ticket__o_v1__role t4 ON t4.id = t5.id_role_parent ORDER BY t.username ASC, t3.position ASC, t5.position DESC');
     }
 
     public function test2Test()
     {
-        $q = Doctrine_Query::create()
-        	->from('Ticket_OV1_Role r')
-        	->leftJoin('r.Users u');
+        $this->conn->setAttribute(Doctrine_Core::ATTR_QUOTE_IDENTIFIER, true);
 
-        $this->assertEqual($q->getSqlQuery(), 'SELECT t.id AS t__id, t.name AS t__name, t2.id AS t2__id, t2.username AS t2__username, t2.password AS t2__password FROM ticket__o_v1__role t LEFT JOIN ticket__o_v1__user_role t3 ON (t.id = t3.id_role) LEFT JOIN ticket__o_v1__user t2 ON t2.id = t3.id_user ORDER BY t2.username');
+        $q = Doctrine_Query::create()
+            ->from('Ticket_OV1_Role r')
+            ->leftJoin('r.Users u');
+
+        $this->assertEqual($q->getSqlQuery(), 'SELECT "t"."id" AS "t__id", "t"."name" AS "t__name", "t2"."id" AS "t2__id", "t2"."username" AS "t2__username", "t2"."password" AS "t2__password" FROM "ticket__o_v1__role" "t" LEFT JOIN "ticket__o_v1__user_role" "t3" ON ("t"."id" = "t3"."id_role") LEFT JOIN "ticket__o_v1__user" "t2" ON "t2"."id" = "t3"."id_user" ORDER BY "t2"."username" DESC');
+
+        $this->conn->setAttribute(Doctrine_Core::ATTR_QUOTE_IDENTIFIER, false);
     }
 
 }
@@ -88,7 +92,7 @@ class Ticket_OV1_Role extends Doctrine_Record
 	
 	public function setUp()
 	{
-		$this->hasMany('Ticket_OV1_User as Users', array('local' => 'id_role', 'foreign' => 'id_user', 'refClass' => 'Ticket_OV1_UserRole', 'orderBy' => 'username'));
+		$this->hasMany('Ticket_OV1_User as Users', array('local' => 'id_role', 'foreign' => 'id_user', 'refClass' => 'Ticket_OV1_UserRole', 'orderBy' => 'username DESC'));
 		$this->hasMany('Ticket_OV1_Role as Parents', array('local' => 'id_role_child', 'foreign' => 'id_role_parent', 'refClass' => 'Ticket_OV1_RoleReference'));
 		$this->hasMany('Ticket_OV1_Role as Children', array('local' => 'id_role_parent', 'foreign' => 'id_role_child', 'refClass' => 'Ticket_OV1_RoleReference'));
 	}

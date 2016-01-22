@@ -1365,9 +1365,15 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
 
                 if ($orderBy) {
                     $e = explode(',', $orderBy);
-                    // modified by mh - added quoteIdentifier
-                    $e = array_map(array($this->_conn, 'quoteIdentifier'), array_map('trim', $e));
+                    $e = array_map('trim', $e);
                     foreach ($e as $v) {
+                        // added by mh - handle quoteIdentifier
+                        $e2 = array_map('trim', explode(' ', $v));
+                        $v = $this->_conn->quoteIdentifier($e2[0]);
+                        if (isset($e2[1])) { // asc or desc
+                            $v .= ' ' . $e2[1];
+                        }
+                        // end added
                         if ( ! in_array($v, $this->_sqlParts['orderby'])) {
                             $this->_sqlParts['orderby'][] = $v;
                         }

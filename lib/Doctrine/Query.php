@@ -1396,6 +1396,17 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
                         }
                         // end added
                         if ( ! in_array($v, $this->_sqlParts['orderby'])) {
+                            // added by mh to include check for non-specified "ASC" order
+                            if(stripos('ASC', $v) !== false) {
+                                if(in_array(preg_replace('/\s+ASC/i', $v), $this->_sqlParts['orderby'])) {
+                                    continue;
+                                }
+                            } else {
+                                if(in_array($v . ' ASC', $this->_sqlParts['orderby'])) {
+                                    continue;
+                                }
+                            }
+                            // end added
                             $this->_sqlParts['orderby'][] = $v;
                         }
                     }

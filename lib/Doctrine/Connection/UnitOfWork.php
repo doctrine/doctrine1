@@ -121,9 +121,10 @@ class Doctrine_Connection_UnitOfWork extends Doctrine_Connection_Module
                         $record->linkInDb($alias, array_keys($ids));
                     }
 
-                    $record->resetPendingUnlinks();
-
                     $record->invokeSaveHooks('post', 'save', $event);
+
+                    // [OV2] move it after postSave - pendingLinks data should be available in postSave hook
+                    $record->resetPendingUnlinks();
                 } else {
                     $conn->transaction->addInvalid($record);
                 }

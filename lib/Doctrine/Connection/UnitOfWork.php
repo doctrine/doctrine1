@@ -101,16 +101,26 @@ class Doctrine_Connection_UnitOfWork extends Doctrine_Connection_Module
                     foreach ($record->getPendingDeletes() as $pendingDelete) {
                         $pendingDelete->delete();
                     }
-                
+
+                    // [OV2] added exceptions to unlinks
+                    $pendingUnlinksExcept = $record->getPendingUnlinksExcept();
                     foreach ($record->getPendingUnlinks() as $alias => $ids) {
-                        if ($ids === false) {
-                            $record->unlinkInDb($alias, array());
-                            $aliasesUnlinkInDb[] = $alias;
+                        $exceptIds = isset($pendingUnlinksExcept[$alias]) ? (array)$pendingUnlinksExcept[$alias] : array();
+                        if ($ids === true) { // [OV2] changed false to true - unlink all
+                            $record->unlinkInDb($alias, array(), $exceptIds);
+                            // [OV2] - checking for processDiff not neccessary. unlink uses new silentRemove method
+                            //$aliasesUnlinkInDb[] = $alias;
                         } else if ($ids) {
-                            $record->unlinkInDb($alias, array_keys($ids));
-                            $aliasesUnlinkInDb[] = $alias;
+                            $record->unlinkInDb($alias, array_keys($ids), $exceptIds);
+                            //$aliasesUnlinkInDb[] = $alias;
                         }
                     }
+
+                    // [OV2]
+                    foreach ($record->getPendingLinks() as $alias => $ids) {
+                        $record->linkInDb($alias, array_keys($ids));
+                    }
+
                     $record->resetPendingUnlinks();
 
                     $record->invokeSaveHooks('post', 'save', $event);

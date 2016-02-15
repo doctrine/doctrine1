@@ -1083,4 +1083,54 @@ class Doctrine_Collection extends Doctrine_Access implements Countable, Iterator
         } 
         return $dirty; 
     }
+
+    // [OV2] added
+    /**
+     * Add a record to the collection silently
+     * i.e. it's also added to the snapshot so it won't appear in getInsertDiff
+     *
+     * @param Doctrine_Record $record
+     * @param string $key
+     * @return bool
+     * @throws Doctrine_Collection_Exception
+     */
+    public function silentAdd($record, $key = null)
+    {
+        $state = $record->state();
+        if($result = $this->add($record, $key)) {
+            if($state == Doctrine_Record::STATE_CLEAN)
+            {
+                // restore clean state on persisted records
+                $record->state($state);
+            }
+
+            if($key === null && isset($this->keyColumn)) {
+                $key = $record->get($this->keyColumn);
+            }
+
+            if(null !== $key) {
+                $this->_snapshot[$key] = $record;
+            } else {
+                $this->_snapshot[] = $record;
+            }
+        }
+        return $result;
+    }
+
+    // [OV2] added
+    /**
+     * Remove a record from the collection silently
+     * i.e. it's also removed from the snapshot so it won't appear in getDeleteDiff
+     *
+     * @param string $key
+     * @return Doctrine_Record
+     */
+    public function silentRemove($key)
+    {
+        $removed = $this->remove($key);
+        if(isset($this->_snapshot[$key]) && $this->compareRecords($removed, $this->_snapshot[$key]) === 0) {
+            unset($this->_snapshot[$key]);
+        }
+        return $removed;
+    }
 }

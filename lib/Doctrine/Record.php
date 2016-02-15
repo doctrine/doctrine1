@@ -159,6 +159,22 @@ abstract class Doctrine_Record extends Doctrine_Record_Abstract implements Count
      */
     protected $_pendingUnlinks = array();
 
+    // [OV2] added
+    /**
+     * Array of exceptions from pending unlinks in format alias => keys (ids which should be preserved during unlink)
+     *
+     * @var array $_pendingUnlinks
+     */
+    protected $_pendingUnlinksExcept = array();
+
+    // [OV2] added
+    /**
+     * Array of pending links in format alias => keys to be executed after save
+     * [OV2] added
+     * @var array $_pendingLinks
+     */
+    protected $_pendingLinks = array();
+
     /**
      * Array of custom accessors for cache
      *
@@ -844,6 +860,8 @@ abstract class Doctrine_Record extends Doctrine_Record_Abstract implements Count
         unset($vars['_oldValues']);
         unset($vars['_pendingDeletes']);
         unset($vars['_pendingUnlinks']);
+        unset($vars['_pendingUnlinksExcept']); // [OV2] added
+        unset($vars['_pendingLinks']); // [OV2] added
         unset($vars['_invokedSaveHooks']);
         unset($vars['_oid']);
         unset($vars['_locator']);
@@ -1064,6 +1082,8 @@ abstract class Doctrine_Record extends Doctrine_Record_Abstract implements Count
                         $reference->free();
                     }
                 }
+                // [OV2]
+                $this->_processPendingLinks($alias);
             }
         } else {
             unset($this->_references[$name]);
@@ -1078,6 +1098,8 @@ abstract class Doctrine_Record extends Doctrine_Record_Abstract implements Count
                     $reference->free();
                 }
             }
+            // [OV2]
+            $this->_processPendingLinks($name);
         }
     }
 
@@ -1408,6 +1430,8 @@ abstract class Doctrine_Record extends Doctrine_Record_Abstract implements Count
                 if ($load) {
                     $rel = $this->_table->getRelation($fieldName);
                     $this->_references[$fieldName] = $rel->fetchRelatedFor($this);
+                    // [OV2]
+                    $this->_processPendingLinks($fieldName);
                 } else {
                     $this->_references[$fieldName] = null;
                 }
@@ -1725,6 +1749,28 @@ abstract class Doctrine_Record extends Doctrine_Record_Abstract implements Count
         return $this->_pendingUnlinks;
     }
 
+    // [OV2] added
+    /**
+     * returns Doctrine_Record instances which need to be preserved during unlink (deleting the relation) on save
+     *
+     * @return array $pendingUnlinks
+     */
+    public function getPendingUnlinksExcept()
+    {
+        return $this->_pendingUnlinksExcept;
+    }
+
+    // [OV2] added
+    /**
+     * returns Doctrine_Record instances which need to be linked (adding the relation) on save
+     *
+     * @return array $pendingLinks
+     */
+    public function getPendingLinks()
+    {
+        return $this->_pendingLinks;
+    }
+
     /**
      * resets pending record unlinks
      *
@@ -1733,6 +1779,9 @@ abstract class Doctrine_Record extends Doctrine_Record_Abstract implements Count
     public function resetPendingUnlinks()
     {
         $this->_pendingUnlinks = array();
+        // [OV2] added
+        $this->_pendingUnlinksExcept = array();
+        $this->_pendingLinks = array();
     }
 
     /**
@@ -2014,14 +2063,20 @@ abstract class Doctrine_Record extends Doctrine_Record_Abstract implements Count
             }
 
             if ($deep && $this->getTable()->hasRelation($key)) {
-                if ( ! $this->$key) {
+                // [OV2] do not load relation when it's not necessary
+                /*if ( ! $this->$key) {
                     $this->refreshRelated($key);
-                }
+                }*/
 
                 if (is_array($value)) {
+                    $rel = $this->getTable()->getRelation($key);
                     if (isset($value[0]) && ! is_array($value[0])) {
-                        $this->unlink($key, array(), false);
+                        $this->unlink($key, array(), false, $value); // [OV2] added last argument - exceptIds
                         $this->link($key, $value, false);
+                    } elseif(empty($value) && !$rel->isOneToOne()) {
+                        // [OV2] added - unlink all if array is empty
+                        // but not for n:1 relations
+                        $this->unlink($key, array());
                     } else {
                         $this->$key->fromArray($value, $deep);
                     }
@@ -2067,14 +2122,20 @@ abstract class Doctrine_Record extends Doctrine_Record_Abstract implements Count
             }
 
             if ($deep && $this->getTable()->hasRelation($key)) {
-                if ( ! $this->$key) {
+                // [OV2] do not load relation when it's not necessary
+                /*if ( ! $this->$key) {
                     $this->refreshRelated($key);
-                }
+                }*/
 
                 if (is_array($value)) {
+                    $rel = $this->getTable()->getRelation($key);
                     if (isset($value[0]) && ! is_array($value[0])) {
-                        $this->unlink($key, array(), false);
+                        $this->unlink($key, array(), false, $value); // [OV2] added last argument - exceptIds
                         $this->link($key, $value, false);
+                    } elseif(empty($value) && !$rel->isOneToOne()) {
+                        // [OV2] added - unlink all if array is empty
+                        // but not for n:1 relations
+                        $this->unlink($key, array());
                     } else {
                         $this->$key->synchronizeWithArray($value);
                         $this->$key = $this->$key;
@@ -2399,6 +2460,8 @@ abstract class Doctrine_Record extends Doctrine_Record_Abstract implements Count
     {
         $rel = $this->_table->getRelation($name);
         $this->_references[$name] = $rel->fetchRelatedFor($this);
+        // [OV2]
+        $this->_processPendingLinks($name);
     }
 
     /**
@@ -2459,44 +2522,72 @@ abstract class Doctrine_Record extends Doctrine_Record_Abstract implements Count
      * @param string $alias     related component alias
      * @param array $ids        the identifiers of the related records
      * @param boolean $now      whether or not to execute now or set as pending unlinks
+     * @param array $exceptIds  the identifiers of the related records which should not be unlinked [OV2]
      * @return Doctrine_Record  this object (fluent interface)
      */
-    public function unlink($alias, $ids = array(), $now = false)
+    public function unlink($alias, $ids = array(), $now = false, $exceptIds = array())
     {
         $ids = (array) $ids;
 
         // fix for #1622
-        if ( ! isset($this->_references[$alias]) && $this->hasRelation($alias)) {
-            $this->loadReference($alias);
-        }		
+        // re-fixed for [OV2] - do not load reference before unlink!
+        //if ( ! isset($this->_references[$alias]) && $this->hasRelation($alias)) {
+        //    $this->loadReference($alias);
+        //}
 
-        $allIds = array();
+        // [OV2] modified
         if (isset($this->_references[$alias])) {
-            if ($this->_references[$alias] instanceof Doctrine_Record) {
-                $allIds[] = $this->_references[$alias]->identifier();
-                if (in_array($this->_references[$alias]->identifier(), $ids) || empty($ids)) {
-                    unset($this->_references[$alias]);
-                }
-            } else {
-                $allIds = $this->get($alias)->getPrimaryKeys();
+            if($this->_references[$alias] instanceof Doctrine_Collection) {
                 foreach ($this->_references[$alias] as $k => $record) {
-                    if (in_array(current($record->identifier()), $ids) || empty($ids)) {
-                        $this->_references[$alias]->remove($k);
+                    $id = current($record->identifier());
+                    if ((empty($ids) || (in_array($id, $ids)))
+                        && (empty($exceptIds) || !in_array($id, $exceptIds))) {
+                        // [OV2] used new method - silentRemove because links will be removed with pendingUnlinks later
+                        // no need to do the same job by the collection itself
+                        $this->_references[$alias]->silentRemove($k);
                     }
                 }
+            } else if($this->_references[$alias] instanceof Doctrine_Record) {
+                $id = current($this->_references[$alias]->identifier());
+                if ((empty($ids) || (in_array($id, $ids)))
+                    && (empty($exceptIds) || !in_array($id, $exceptIds))) {
+                    unset($this->_references[$alias]);
+                }
+            }
+        }
+
+        // [OV2] added - for x-to-one reference, nullify local column if id matches
+        $rel = $this->getTable()->getRelation($alias);
+        if ($rel instanceof Doctrine_Relation_LocalKey
+            && ((array)$rel->getLocal() != (array)$this->getTable()->getIdentifier())) {
+
+            $value = $this->get($rel->getLocalFieldName(), false);
+            if ($value && (empty($ids) || (in_array($value, $ids)))
+                && (empty($exceptIds) || !in_array($value, $exceptIds))) {
+
+                $this->set($rel->getLocalFieldName(), null);
             }
         }
 
         if ( ! $this->exists() || $now === false) {
             if ( ! $ids) {
-                $ids = $allIds;
+                // [OV2] just unlink all records, do not store array of ids
+                $this->_pendingUnlinks[$alias] = true;
+                unset($this->_pendingLinks[$alias]);
             }
-            foreach ($ids as $id) {
-                $this->_pendingUnlinks[$alias][$id] = true;
+            // [OV2] added condition - if pendingUnlinks for an alias is true, it means all records will be unlinked
+            // no need to add more ids
+            else if(!isset($this->_pendingUnlinks[$alias]) || is_array($this->_pendingUnlinks[$alias])) {
+                foreach ($ids as $id) {
+                    $this->_pendingUnlinks[$alias][$id] = true;
+                    // [OV2] added
+                    unset($this->_pendingLinks[$alias][$id]);
+                }
             }
+            $this->_pendingUnlinksExcept[$alias] = $exceptIds;
             return $this;
         } else {
-            return $this->unlinkInDb($alias, $ids);
+            return $this->unlinkInDb($alias, $ids, $exceptIds);
         }
     }
 
@@ -2504,9 +2595,10 @@ abstract class Doctrine_Record extends Doctrine_Record_Abstract implements Count
      * unlink now the related components, querying the db
      * @param string $alias     related component alias
      * @param array $ids        the identifiers of the related records
+     * @param array $exceptIds  the identifiers of the related records which should not be unlinked [OV2]
      * @return Doctrine_Record  this object (fluent interface)
      */
-    public function unlinkInDb($alias, $ids = array())
+    public function unlinkInDb($alias, $ids = array(), $exceptIds = array())
     {
         $rel = $this->getTable()->getRelation($alias);
 
@@ -2520,6 +2612,11 @@ abstract class Doctrine_Record extends Doctrine_Record_Abstract implements Count
                 $q->whereIn($rel->getForeign(), $ids);
             }
 
+            // [OV2]
+            if (count($exceptIds) > 0) {
+                $q->whereNotIn($rel->getForeign(), $exceptIds);
+            }
+
             $q->execute();
         } else if ($rel instanceof Doctrine_Relation_ForeignKey) {
             $q = $rel->getTable()->createQuery()
@@ -2529,6 +2626,11 @@ abstract class Doctrine_Record extends Doctrine_Record_Abstract implements Count
 
             if (count($ids) > 0) {
                 $q->whereIn($rel->getTable()->getIdentifier(), $ids);
+            }
+
+            // [OV2]
+            if (count($exceptIds) > 0) {
+                $q->whereIn($rel->getTable()->getIdentifier(), $exceptIds);
             }
 
             $q->execute();
@@ -2553,26 +2655,68 @@ abstract class Doctrine_Record extends Doctrine_Record_Abstract implements Count
         }
 
         if ( ! $this->exists() || $now === false) {
-            $relTable = $this->getTable()->getRelation($alias)->getTable();
-            $records = $relTable->createQuery()
-                ->whereIn($relTable->getIdentifier(), $ids)
-                ->execute();
-
-            foreach ($records as $record) {
-                if ($this->$alias instanceof Doctrine_Record) {
-                    $this->set($alias, $record);
-                } else {
-                    if ($c = $this->get($alias)) {
-                        $c->add($record);
-                    } else {
-                        $this->set($alias, $record);
+            // [OV2] refactored
+			// added check - load linked records only if reference is loaded
+            $hasRecord = false;
+            if (isset($this->_references[$alias])) {
+                // do not load already loaded records
+                $loadedIds = array();
+                if($this->_references[$alias] instanceof Doctrine_Collection) {
+                    $loadedIds = $this->get($alias)->getPrimaryKeys();
+                } else if($this->_references[$alias] instanceof Doctrine_Record) {
+                    $id = current($this->_references[$alias]->identifier());
+                    if($id) {
+                        $loadedIds[] = $id;
                     }
+                }
+                $unloadedIds = array_diff($ids, $loadedIds);
+                if(count($unloadedIds))
+                {
+                    // should load some records
+                    $relTable = $this->getTable()->getRelation($alias)->getTable();
+                    $records = $relTable->createQuery()
+                        ->whereIn($relTable->getIdentifier(), $unloadedIds)
+                        ->execute();
+
+                    foreach ($records as $record) {
+                        if ($this->_references[$alias] instanceof Doctrine_Record) {
+                            $this->set($alias, $record);
+                            $hasRecord = true;
+                        } else {
+                            if($this->_references[$alias] instanceof Doctrine_Collection) {
+                                // [OV2] used new method - silentAdd because links will be added with pendingLinks later
+                                // no need to do the same job by the collection itself
+                                $this->_references[$alias]->silentAdd($record);
+                            } else {
+                                $this->set($alias, $record);
+                                $hasRecord = true;
+                            }
+                        }
+                    }
+                } else if ($this->_references[$alias] instanceof Doctrine_Record) {
+                    $hasRecord = true;
+                }
+            } else {
+                // [OV2] added - for x-to-one reference (if not loaded), set local column to linked id
+                $rel = $this->getTable()->getRelation($alias);
+                if ($rel instanceof Doctrine_Relation_LocalKey
+                    && ((array)$rel->getLocal() != (array)$this->getTable()->getIdentifier())) {
+
+                    $this->set($rel->getLocalFieldName(), end($ids));
+                    reset($ids);
                 }
             }
 
             foreach ($ids as $id) {
                 if (isset($this->_pendingUnlinks[$alias][$id])) {
                     unset($this->_pendingUnlinks[$alias][$id]);
+                }
+            }
+
+            // [OV2] added pending links for non-loaded references
+            if(!$hasRecord) {
+                foreach ($ids as $id) {
+                    $this->_pendingLinks[$alias][$id] = true;
                 }
             }
 
@@ -2597,6 +2741,11 @@ abstract class Doctrine_Record extends Doctrine_Record_Abstract implements Count
         $rel = $this->getTable()->getRelation($alias);
 
         if ($rel instanceof Doctrine_Relation_Association) {
+            // [OV2] added
+            if (!$ids) {
+                return $this;
+            }
+
             $modelClassName = $rel->getAssociationTable()->getComponentName();
             $localFieldName = $rel->getLocalFieldName();
             $localFieldDef  = $rel->getAssociationTable()->getColumnDefinition($localFieldName);
@@ -2613,6 +2762,16 @@ abstract class Doctrine_Record extends Doctrine_Record_Abstract implements Count
                     $ids[$i] = (integer) $id;
                 }
             }
+
+            // [OV2] check which ids are added already
+            $existingIds = $rel->getAssociationTable()
+                ->createQuery()
+                ->select($rel->getForeign())
+                ->where($rel->getLocal() . ' = ?', array($identifier))
+                ->andWhereIn($rel->getForeign(), $ids)
+                ->execute(array(), Doctrine_Core::HYDRATE_SINGLE_SCALAR);
+
+            $ids = array_diff($ids, (array)$existingIds);
 
             foreach ($ids as $id) {
                 $record = new $modelClassName;
@@ -2644,6 +2803,36 @@ abstract class Doctrine_Record extends Doctrine_Record_Abstract implements Count
             $q->execute();
         }
 
+        return $this;
+    }
+
+    /**
+     * Process pending links / unlinks on lazy-loaded reference
+     *
+     * @param $alias
+     * @return $this
+     */
+    protected function _processPendingLinks($alias)
+    {
+        if(isset($this->_references[$alias])) {
+            $pendingLinks = isset($this->_pendingLinks[$alias]) ? array_keys($this->_pendingLinks[$alias]) : array();
+            if(isset($this->_pendingUnlinks[$alias])) {
+                $unlink = $this->_pendingUnlinks[$alias];
+                $unlinkExcept = isset($this->_pendingUnlinksExcept[$alias]) ? (array)$this->_pendingUnlinksExcept[$alias] : array();
+                if($unlink === true) { // unlink all records
+                    $this->unlink($alias, array(), false, $unlinkExcept);
+                } else if ($unlink) { // unlink given ids
+                    $this->unlink($alias, array_keys($unlink), false, $unlinkExcept);
+                }
+            }
+            if($pendingLinks) {
+                $this->link($alias, $pendingLinks, false);
+            }
+
+            if(!isset($this->_references[$alias])) {
+                $this->_references[$alias] = null;
+            }
+        }
         return $this;
     }
 

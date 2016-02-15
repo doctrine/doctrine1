@@ -91,7 +91,9 @@ class Doctrine_Query_MultiJoin_TestCase extends Doctrine_UnitTestCase
 
         $query = new Doctrine_Query();
 
-        $users = $query->query('FROM User.Album.Song, User.Phonenumber WHERE User.id IN (4,5)');
+        // added order bys, made it behave
+        $users = $query->query('FROM User.Album.Song, User.Phonenumber WHERE User.id IN (4,5)
+            ORDER BY User.id, User.Album.id, User.Album.Song.id, User.Phonenumber.id');
 
         $this->assertEqual($users->count(), 2);
 
@@ -148,7 +150,9 @@ class Doctrine_Query_MultiJoin_TestCase extends Doctrine_UnitTestCase
     {
         $query = new Doctrine_Query();
 
-        $users = $query->query("FROM User.Album.Song, User.Book.Author WHERE User.id IN (4,5)");
+        // added order bys, made it behave
+        $users = $query->query("FROM User.Album.Song, User.Book.Author WHERE User.id IN (4,5)
+            ORDER BY User.id, User.Album.id, User.Album.Song.id, User.Book.id, User.Book.Author.id");
         
         $this->assertEqual($users->count(), 2);
 

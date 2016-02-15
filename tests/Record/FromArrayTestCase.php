@@ -78,11 +78,15 @@ class Doctrine_Record_FromArray_TestCase extends Doctrine_UnitTestCase
 
     public function testFromArrayAfterSaveRecord()
     {
-        $user = Doctrine_Query::create()->from('User u, u.Email, u.Phonenumber, u.Group')->fetchOne();
+        // added order bys, made it behave
+        $user = Doctrine_Query::create()->from('User u, u.Email, u.Phonenumber, u.Group')
+            ->orderBy('u.id, u.Email.id, u.Phonenumber.id, u.Group.id')
+            ->fetchOne();
+
         $this->assertEqual($user->Phonenumber->count(), 1);
         $this->assertEqual($user->Phonenumber[0]->phonenumber, '555 321');
         $this->assertEqual($user->Email->address, 'johndow@mail.com');
-        $this->assertEqual($user->Group[0]->name, 'New Group');
-        $this->assertEqual($user->Group[1]->name, 'Group One');
+        $this->assertEqual($user->Group[0]->name, 'Group One');
+        $this->assertEqual($user->Group[1]->name, 'New Group');
     }
 }

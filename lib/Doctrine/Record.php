@@ -2014,6 +2014,10 @@ abstract class Doctrine_Record extends Doctrine_Record_Abstract implements Count
 
         // [FIX] Prevent mapped Doctrine_Records from being displayed fully
         foreach ($this->_values as $key => $value) {
+            // [OV3] allow use of custom accessors on mapped values
+            if($this->hasAccessor($key)) {
+                $value = $this->get($key);
+            }
             $a[$key] = ($value instanceof Doctrine_Record || $value instanceof Doctrine_Collection)
                 ? $value->toArray($deep, $prefixKey) : $value;
         }
@@ -2148,7 +2152,7 @@ abstract class Doctrine_Record extends Doctrine_Record_Abstract implements Count
 
         // Eliminate relationships missing in the $array
         foreach ($this->_references as $name => $relation) {
-	        $rel = $this->getTable()->getRelation($name);
+            $rel = $this->getTable()->getRelation($name);
 
             if ( ! $rel->isRefClass() && ! isset($array[$name]) && ( ! $rel->isOneToOne() || ! isset($array[$rel->getLocalFieldName()]))) {
                 unset($this->$name);
@@ -2656,7 +2660,7 @@ abstract class Doctrine_Record extends Doctrine_Record_Abstract implements Count
 
         if ( ! $this->exists() || $now === false) {
             // [OV2] refactored
-			// added check - load linked records only if reference is loaded
+            // added check - load linked records only if reference is loaded
             $hasRecord = false;
             if (isset($this->_references[$alias])) {
                 // do not load already loaded records

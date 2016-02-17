@@ -43,6 +43,28 @@ class Doctrine_Ticket_OV1_TestCase extends Doctrine_UnitTestCase
         parent::prepareTables();
     }
 
+   public function prepareData()
+   {
+		$user = new Ticket_OV1_User();
+		$user->username = 'username';
+		$user->password = 'password';
+		$user->save();
+
+		$role = new Ticket_OV1_Role();
+		$role->name = 'admin';
+		$role->save();
+
+		$userRole = new Ticket_OV1_UserRole();
+		$userRole->id_user = $user->id;
+		$userRole->id_role = $role->id;
+		$userRole->position = 1;
+		$userRole->save();
+
+		$user->free();
+	    $role->free();
+	    $userRole->free();
+	}
+
     public function testTest()
     {
         $q = Doctrine_Query::create()
@@ -75,6 +97,30 @@ class Doctrine_Ticket_OV1_TestCase extends Doctrine_UnitTestCase
 
         $this->assertEqual($q->getSqlQuery(), 'SELECT t.id AS t__id, t.name AS t__name FROM ticket__o_v1__role t WHERE (t.id IN (SELECT t2.id_role_parent AS t2__id_role_parent FROM ticket__o_v1__role_reference t2 ORDER BY t2.position DESC))');
     }
+
+    public function testLazyLoad()
+    {
+		$profiler = new Doctrine_Connection_Profiler();
+    	$this->conn->addListener($profiler);
+
+		$user = Doctrine_Core::getTable('Ticket_OV1_User')->find(1);
+
+		// lazy load the relation
+    	$roles = $user->Roles;
+
+        $events = $profiler->getAll();
+        $event = array_pop($events);
+        $this->assertEqual($event->getQuery(), 'SELECT t.id AS t__id, t.name AS t__name, t2.id_user AS t2__id_user, t2.id_role AS t2__id_role, t2.position AS t2__position FROM ticket__o_v1__role t LEFT JOIN ticket__o_v1__user_role t2 ON t.id = t2.id_role WHERE (t2.id_user IN (?)) ORDER BY t2.position ASC');
+
+        $role = Doctrine_Core::getTable('Ticket_OV1_Role')->find(1);
+        // lazy load the relation
+        $users = $role->Users;
+
+        $events = $profiler->getAll();
+        $event = array_pop($events);
+        $this->assertEqual($event->getQuery(), 'SELECT t.id AS t__id, t.username AS t__username, t.password AS t__password, t2.id_user AS t2__id_user, t2.id_role AS t2__id_role, t2.position AS t2__position FROM ticket__o_v1__user t LEFT JOIN ticket__o_v1__user_role t2 ON t.id = t2.id_user WHERE (t2.id_role IN (?)) ORDER BY t.username DESC');
+    }
+
 
 }
 

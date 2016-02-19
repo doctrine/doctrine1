@@ -2532,6 +2532,7 @@ abstract class Doctrine_Record extends Doctrine_Record_Abstract implements Count
     public function unlink($alias, $ids = array(), $now = false, $exceptIds = array())
     {
         $ids = (array) $ids;
+        $exceptIds = (array) $exceptIds;
 
         // fix for #1622
         // re-fixed for [OV2] - do not load reference before unlink!
@@ -2618,7 +2619,7 @@ abstract class Doctrine_Record extends Doctrine_Record_Abstract implements Count
 
             // [OV2]
             if (count($exceptIds) > 0) {
-                $q->whereNotIn($rel->getForeign(), $exceptIds);
+                $q->andWhereNotIn($rel->getForeign(), $exceptIds);
             }
 
             $q->execute();
@@ -2634,7 +2635,7 @@ abstract class Doctrine_Record extends Doctrine_Record_Abstract implements Count
 
             // [OV2]
             if (count($exceptIds) > 0) {
-                $q->whereIn($rel->getTable()->getIdentifier(), $exceptIds);
+                $q->andWhereNotIn($rel->getTable()->getIdentifier(), $exceptIds);
             }
 
             $q->execute();

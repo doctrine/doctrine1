@@ -784,7 +784,10 @@ class Doctrine_Collection extends Doctrine_Access implements Countable, Iterator
      */
     public function fromArray($array, $deep = true)
     {
-        $data = array();
+        if(!is_array($array)) {
+            return;
+        }
+
         foreach ($array as $rowKey => $row) {
             $this[$rowKey]->fromArray($row, $deep);
         }

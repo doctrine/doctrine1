@@ -521,6 +521,15 @@ abstract class Doctrine_Record extends Doctrine_Record_Abstract implements Count
     public function postSave($event)
     { }
 
+    // [OV4] added
+    /**
+     * Empty template method to provide concrete Record classes with the possibility
+     * to hook into the saving procedure.
+     * Called on save, after all relations are also saved.
+     */
+    public function postRelatedSave($event)
+    { }
+
     /**
      * Empty template method to provide concrete Record classes with the possibility
      * to hook into the deletion procedure.

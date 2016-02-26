@@ -156,6 +156,11 @@ class Doctrine_Connection_UnitOfWork extends Doctrine_Connection_Module
 
             $record->state($state);
 
+            // [OV4] added postRelatedSave hook when all relations are also saved
+            if ($isValid) {
+                $record->invokeSaveHooks('postRelated', 'save', $event);
+            }
+
             $conn->commit();
         } catch (Exception $e) {
             // Make sure we roll back our internal transaction

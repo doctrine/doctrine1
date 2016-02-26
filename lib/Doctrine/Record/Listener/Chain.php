@@ -240,6 +240,22 @@ class Doctrine_Record_Listener_Chain extends Doctrine_Access implements Doctrine
         }
     }
 
+    // [OV4] added
+    public function postRelatedSave(Doctrine_Event $event)
+    {
+        $disabled = $this->getOption('disabled');
+
+        if ($disabled !== true && ! (is_array($disabled) && in_array('postRelatedSave', $disabled))) {
+            foreach ($this->_listeners as $listener) {
+                $disabled = $listener->getOption('disabled');
+
+                if ($disabled !== true && ! (is_array($disabled) && in_array('postRelatedSave', $disabled))) {
+                    $listener->postRelatedSave($event);
+                }
+            }
+        }
+    }
+
     public function preDqlDelete(Doctrine_Event $event)
     {
         $disabled = $this->getOption('disabled');

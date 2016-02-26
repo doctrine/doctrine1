@@ -50,6 +50,9 @@ interface Doctrine_Record_Listener_Interface
 
     public function postSave(Doctrine_Event $event);
 
+    // [OV4] added
+    public function postRelatedSave(Doctrine_Event $event);
+
     public function preDelete(Doctrine_Event $event);
 
     public function postDelete(Doctrine_Event $event);

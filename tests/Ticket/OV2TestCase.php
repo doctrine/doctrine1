@@ -161,12 +161,12 @@ class Doctrine_Ticket_OV2_TestCase extends Doctrine_UnitTestCase
 		$user->fromArray(array(
 			'Roles' => array(1, 2, 5),
 			'Data' => array(1),
-			'Posts' => array(), // unlink all
+			'Posts' => array(), // do not unlink all - posts would be unlinked only if the relation would be m2m
 		));
 
 		$this->assertEqual(array_values($user->Roles->toKeyValueArray('id', 'id')), array(2, 1, 5));
 		$this->assertEqual($user->Data->first_name, 'first_name');
-		$this->assertFalse($user->Posts->getFirst());
+		$this->assertEqual($user->Posts->count(), 2);
 		$user->free(true);
 	}
 
@@ -185,6 +185,13 @@ class Doctrine_Ticket_OV2_TestCase extends Doctrine_UnitTestCase
 		));
 
 		$this->assertEqual($post->User->id, 1);
+		$this->assertEqual($post->User->Roles->count(), 3);
+
+		$post->fromArray(array(
+			'User' => array('Roles' => array()), // should clear roles for user because User-Role relation is m2m
+		));
+
+		$this->assertEqual($post->User->Roles->count(), 0);
 	}
 
     public function testUnlinkExcept()
@@ -227,7 +234,7 @@ class Ticket_OV2_User extends Doctrine_Record
 		$this->hasColumn('username', 'string', 64, array('notnull' => true));
 		$this->hasColumn('password', 'string', 128, array('notnull' => true));
 	}
-	
+
 	public function setUp()
 	{
 		// 1:1
@@ -276,7 +283,7 @@ class Ticket_OV2_Role extends Doctrine_Record
 	{
 		$this->hasColumn('name', 'string', 64);
 	}
-	
+
 	public function setUp()
 	{
 		$this->hasMany('Ticket_OV2_User as Users', array('local' => 'id_role', 'foreign' => 'id_user', 'refClass' => 'Ticket_OV2_UserRole'));
@@ -290,7 +297,7 @@ class Ticket_OV2_UserRole extends Doctrine_Record
 		$this->hasColumn('id_user', 'integer', null, array('primary' => true));
 		$this->hasColumn('id_role', 'integer', null, array('primary' => true));
 	}
-	
+
 	public function setUp()
 	{
 		$this->hasOne('Ticket_OV2_User as User', array('local' => 'id_user', 'foreign' => 'id', 'onDelete' => 'CASCADE'));

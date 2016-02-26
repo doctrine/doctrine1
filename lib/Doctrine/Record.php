@@ -2077,9 +2077,9 @@ abstract class Doctrine_Record extends Doctrine_Record_Abstract implements Count
                     if (isset($value[0]) && ! is_array($value[0])) {
                         $this->unlink($key, array(), false, $value); // [OV2] added last argument - exceptIds
                         $this->link($key, $value, false);
-                    } elseif(empty($value) && !$rel->isOneToOne()) {
+                    } elseif(empty($value) && !$rel->isOneToOne() && $rel['refTable'] !== null) {
                         // [OV2] added - unlink all if array is empty
-                        // but not for n:1 relations
+                        // this applies to many-to-many relations only
                         $this->unlink($key, array());
                     } else {
                         $this->$key->fromArray($value, $deep);
@@ -2136,9 +2136,9 @@ abstract class Doctrine_Record extends Doctrine_Record_Abstract implements Count
                     if (isset($value[0]) && ! is_array($value[0])) {
                         $this->unlink($key, array(), false, $value); // [OV2] added last argument - exceptIds
                         $this->link($key, $value, false);
-                    } elseif(empty($value) && !$rel->isOneToOne()) {
+                    } elseif(empty($value) && !$rel->isOneToOne() && $rel['refTable'] !== null) {
                         // [OV2] added - unlink all if array is empty
-                        // but not for n:1 relations
+                        // this applies to many-to-many relations only
                         $this->unlink($key, array());
                     } else {
                         $this->$key->synchronizeWithArray($value);

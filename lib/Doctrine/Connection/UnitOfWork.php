@@ -123,8 +123,6 @@ class Doctrine_Connection_UnitOfWork extends Doctrine_Connection_Module
 
                     $record->invokeSaveHooks('post', 'save', $event);
 
-                    // [OV2] move it after postSave - pendingLinks data should be available in postSave hook
-                    $record->resetPendingUnlinks();
                 } else {
                     $conn->transaction->addInvalid($record);
                 }
@@ -159,6 +157,9 @@ class Doctrine_Connection_UnitOfWork extends Doctrine_Connection_Module
             // [OV4] added postRelatedSave hook when all relations are also saved
             if ($isValid) {
                 $record->invokeSaveHooks('postRelated', 'save', $event);
+
+                // [OV4] move it after postRelatedSave - pendingLinks data should be available in postSave and postRelatedSave hooks
+                $record->resetPendingUnlinks();
             }
 
             $conn->commit();

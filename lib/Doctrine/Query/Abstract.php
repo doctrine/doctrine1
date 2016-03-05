@@ -768,7 +768,9 @@ abstract class Doctrine_Query_Abstract
     {
         $this->_params =& $query->_params;
         $this->_tableAliasMap =& $query->_tableAliasMap;
-        $this->_queryComponents =& $query->_queryComponents;
+        // [OV5] do not set queryComponents by reference to a subquery - what happens in subquery, stays in subquery
+        //$this->_queryComponents =& $query->_queryComponents;
+        $this->_queryComponents = $query->_queryComponents;
         $this->_tableAliasSeeds = $query->_tableAliasSeeds;
         return $this;
     }

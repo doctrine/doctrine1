@@ -376,6 +376,28 @@ abstract class Doctrine_Query_Abstract
         return $q;
     }
 
+	// [OV6]
+    /**
+     * getDqlWithParams
+     * returns the DQL query that is represented by this query object, with interpolated param values
+     *
+     * the query is built from $_dqlParts
+     *
+     * @return string   the DQL query
+     */
+    public function getDqlWithParams()
+    {
+        $dql = $this->getDql();
+        $params = $this->getFlattenedParams();
+        foreach($params as &$param)
+        {
+            $param = $this->_conn->quote($param);
+        }
+
+        $dql = str_replace('?', '%s', $dql);
+        return vsprintf($dql, $params);
+    }
+
     /**
      * getSqlQueryPart
      * gets an SQL query part from the SQL query part array

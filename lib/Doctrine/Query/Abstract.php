@@ -995,8 +995,9 @@ abstract class Doctrine_Query_Abstract
         // Get prepared SQL params for execution
         $params = $this->getInternalParams();
 
-        if ($this->isLimitSubqueryUsed() &&
-                $this->_conn->getAttribute(Doctrine_Core::ATTR_DRIVER_NAME) !== 'mysql') {
+        // [OV7] mysql should also use limit subquery in the same format as pgsql
+        if ($this->isLimitSubqueryUsed()/* &&
+                $this->_conn->getAttribute(Doctrine_Core::ATTR_DRIVER_NAME) !== 'mysql'*/) {
             $params = array_merge((array) $params, (array) $params);
         }
 

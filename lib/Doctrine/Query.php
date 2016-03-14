@@ -1296,7 +1296,7 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
             $idColumnName = $table->getColumnName($table->getIdentifier());
 
             switch (strtolower($this->_conn->getDriverName())) {
-                case 'mysql':
+                /*case 'mysql':
                     $this->useQueryCache(false);
 
                     // mysql doesn't support LIMIT in subqueries
@@ -1304,7 +1304,10 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
                     $subquery = implode(', ', array_map(array($this->_conn, 'quote'), $list));
 
                     break;
+                */
 
+                // [OV7] mysql should also use limit subquery in the same format as pgsql
+                case 'mysql':
                 case 'pgsql':
                     $subqueryAlias = $this->_conn->quoteIdentifier('doctrine_subquery_alias');
 

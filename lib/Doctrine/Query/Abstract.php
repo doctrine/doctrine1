@@ -113,6 +113,12 @@ abstract class Doctrine_Query_Abstract
      */
     protected $_execParams = array();
 
+    /**
+     * [OV8]
+     * @var current limit subquery generated and used in getSqlQuery method
+     */
+    protected $_limitSubquerySql;
+
     /* Caching properties */
     /**
      * @var Doctrine_Cache_Interface  The cache driver used for caching result sets.
@@ -893,12 +899,13 @@ abstract class Doctrine_Query_Abstract
      * calculateQueryCacheHash
      * calculate hash key for query cache
      *
+     * @param bool $limitSubquery [OV8] separate cache for query incl. limitsubquery
      * @return string    the hash
      */
-    public function calculateQueryCacheHash()
+    public function calculateQueryCacheHash($limitSubquery = true)
     {
         $dql = $this->getDql();
-        $hash = md5($dql . var_export($this->_pendingJoinConditions, true) . 'DOCTRINE_QUERY_CACHE_SALT');
+        $hash = md5($dql . var_export($this->_pendingJoinConditions, true) . 'DOCTRINE_QUERY_CACHE_SALT') .'_'. (int)$limitSubquery;
         return $hash;
     }
 
@@ -953,7 +960,8 @@ abstract class Doctrine_Query_Abstract
 
         // Check if we're not using a Doctrine_View
         if ( ! $this->_view) {
-            if ($this->_queryCache !== false && ($this->_queryCache || $this->_conn->getAttribute(Doctrine_Core::ATTR_QUERY_CACHE))) {
+            // [OV8] queryCache modifications - hook it in getSqlQuery method instead of execute method only
+            /*if ($this->_queryCache !== false && ($this->_queryCache || $this->_conn->getAttribute(Doctrine_Core::ATTR_QUERY_CACHE))) {
                 $queryCacheDriver = $this->getQueryCacheDriver();
                 $hash = $this->calculateQueryCacheHash();
                 $cached = $queryCacheDriver->fetch($hash);
@@ -985,9 +993,9 @@ abstract class Doctrine_Query_Abstract
                         $queryCacheDriver->save($hash, $serializedQuery, $this->getQueryCacheLifeSpan());
                     }
                 }
-            } else {
+            } else {*/
                 $query = $this->getSqlQuery($params);
-            }
+            //}
         } else {
             $query = $this->_view->getSelectSql();
         }
@@ -1201,6 +1209,11 @@ abstract class Doctrine_Query_Abstract
     {
         $cached = unserialize($cached);
         $this->_tableAliasMap = $cached[2];
+        // [OV8] added rootAlias, sqlParts, isLimitSubqueryUsed and limitSubquery to cache
+        $this->_rootAlias = $cached[3];
+        $this->_sqlParts = $cached[4];
+        $this->_isLimitSubqueryUsed = $cached[5];
+        $this->_limitSubquerySql = $cached[6];
         $customComponent = $cached[0];
 
         $queryComponents = array();
@@ -1261,7 +1274,16 @@ abstract class Doctrine_Query_Abstract
             }
         }
 
-        return serialize(array($customComponent, $componentInfo, $this->getTableAliasMap()));
+        // [OV8] added rootAlias, sqlParts (without offset or limit), isLimitSubqueryUsed and limitSubquery to cache
+        return serialize(array(
+            $customComponent,
+            $componentInfo,
+            $this->getTableAliasMap(),
+            $this->_rootAlias,
+            array_merge($this->_sqlParts, array('offset' => false, 'limit' => false)),
+            $this->_isLimitSubqueryUsed,
+            $this->_limitSubquerySql
+        ));
     }
 
     /**

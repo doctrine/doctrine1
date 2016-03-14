@@ -223,6 +223,7 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
         $this->_subqueryAliases = array();
         $this->_needsSubquery = false;
         $this->_isLimitSubqueryUsed = false;
+        $this->_limitSubquerySql = null; // [OV8]
     }
 
     /**
@@ -1159,7 +1160,63 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
             // Return compiled SQL
             return $this->_sql;
         }
-        return $this->buildSqlQuery($limitSubquery);
+
+        // [OV8] queryCache modifications - hook it in getSqlQuery method instead of execute method only
+        $cached = false;
+        $queryCacheEnabled = ($this->_queryCache !== false && ($this->_queryCache || $this->_conn->getAttribute(Doctrine_Core::ATTR_QUERY_CACHE)));
+        if ($queryCacheEnabled) {
+            $queryCacheDriver = $this->getQueryCacheDriver();
+            $hash = $this->calculateQueryCacheHash($limitSubquery);
+            $cached = $queryCacheDriver->fetch($hash);
+        }
+
+        // If we have a cached query...
+        if ($cached) {
+            // Rebuild query from cache
+            $query = $this->_constructQueryFromCache($cached);
+        }
+        else
+        {
+            $query = $this->buildSqlQuery($limitSubquery);
+
+            // Check again because getSqlQuery() above could have flipped the _queryCache flag
+            // if this query contains the limit sub query algorithm we don't need to cache it
+            if ($queryCacheEnabled) {
+                // Convert query into a serialized form
+                $serializedQuery = $this->getCachedForm($query);
+
+                // Save cached query
+                $queryCacheDriver->save($hash, $serializedQuery, $this->getQueryCacheLifeSpan());
+            }
+        }
+
+        // [OV9] cache without limit and offset, attach now
+        if($queryCacheEnabled && $this->_conn->getAttribute(Doctrine_Core::ATTR_QUERY_CACHE_NO_OFFSET_LIMIT))
+        {
+            $this->_processDqlQueryPart('offset', $this->_dqlParts['offset']);
+            $this->_processDqlQueryPart('limit', $this->_dqlParts['limit']);
+
+            if($this->_limitSubquerySql != '')
+            {
+                // add offset and limit to subquery and replace the subquery in main query
+                $subquery = $this->_limitSubquerySql;
+                $map = reset($this->_queryComponents);
+                $table = $map['table'];
+                $subquery = $this->_conn->modifyLimitSubquery($table, $subquery, $this->_sqlParts['limit'], $this->_sqlParts['offset']);
+
+                if($subquery != $this->_limitSubquerySql)
+                {
+                    $query = str_replace($this->_limitSubquerySql, $subquery, $query);
+                }
+            }
+            else
+            {
+                // add offset and limit to main query
+                $query = $this->_conn->modifyLimitQuery($query, $this->_sqlParts['limit'], $this->_sqlParts['offset'], false, false, $this);
+            }
+        }
+
+        return $query;
     }
 
     /**
@@ -1290,7 +1347,8 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
         $limitSubquerySql = '';
 
         if ( ( ! empty($this->_sqlParts['limit']) || ! empty($this->_sqlParts['offset'])) && $needsSubQuery && $limitSubquery) {
-            $subquery = $this->getLimitSubquery();
+            // [OV8] remember current limit subquery, for storing in query cache
+            $this->_limitSubquerySql = $subquery = $this->getLimitSubquery();
 
             // what about composite keys?
             $idColumnName = $table->getColumnName($table->getIdentifier());

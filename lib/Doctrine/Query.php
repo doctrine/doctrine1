@@ -1479,7 +1479,10 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
         $q .= ( ! empty($this->_sqlParts['having'])) ?  ' HAVING '   . implode(' AND ', $this->_sqlParts['having']): '';
         $q .= ( ! empty($this->_sqlParts['orderby'])) ? ' ORDER BY ' . implode(', ', $this->_sqlParts['orderby'])  : '';
 
-        if ($modifyLimit) {
+        // [OV9] cache without limit and offset
+        if ($modifyLimit
+            && !(false !== $this->_queryCache && ($this->_queryCache || $this->_conn->getAttribute(Doctrine_Core::ATTR_QUERY_CACHE))
+                && $this->_conn->getAttribute(Doctrine_Core::ATTR_QUERY_CACHE_NO_OFFSET_LIMIT))) {
             $q = $this->_conn->modifyLimitQuery($q, $this->_sqlParts['limit'], $this->_sqlParts['offset'], false, false, $this);
         }
 
@@ -1618,8 +1621,12 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
                     . ' ORDER BY MIN(ROWNUM)';
         }
 
-        // add driver specific limit clause
-        $subquery = $this->_conn->modifyLimitSubquery($table, $subquery, $this->_sqlParts['limit'], $this->_sqlParts['offset']);
+        // [OV9] cache without limit and offset
+        if (!(false !== $this->_queryCache && ($this->_queryCache || $this->_conn->getAttribute(Doctrine_Core::ATTR_QUERY_CACHE))
+                && $this->_conn->getAttribute(Doctrine_Core::ATTR_QUERY_CACHE_NO_OFFSET_LIMIT))) {
+            // add driver specific limit clause
+            $subquery = $this->_conn->modifyLimitSubquery($table, $subquery, $this->_sqlParts['limit'], $this->_sqlParts['offset']);
+        }
 
         $parts = $this->_tokenizer->quoteExplode($subquery, ' ', "'", "'");
 

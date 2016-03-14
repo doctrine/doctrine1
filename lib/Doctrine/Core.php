@@ -210,6 +210,8 @@ class Doctrine_Core
     const ATTR_MODEL_CLASS_PREFIX           = 178;
     const ATTR_TABLE_CLASS_FORMAT           = 179;
     const ATTR_MAX_IDENTIFIER_LENGTH        = 180;
+    // [OV9] cache without limit and offset
+    const ATTR_QUERY_CACHE_NO_OFFSET_LIMIT  = 181;
 
     /**
      * LIMIT CONSTANTS

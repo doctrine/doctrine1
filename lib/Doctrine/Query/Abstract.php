@@ -899,12 +899,25 @@ abstract class Doctrine_Query_Abstract
      * calculateQueryCacheHash
      * calculate hash key for query cache
      *
-     * @param bool $limitSubquery [OV8] separate cache for query incl. limitsubquery
+     * @param bool $limitSubquery separate cache for query incl. limitsubquery
      * @return string    the hash
      */
     public function calculateQueryCacheHash($limitSubquery = true)
     {
-        $dql = $this->getDql();
+        // [OV9] cache without limit and offset
+        if($this->_conn->getAttribute(Doctrine_Core::ATTR_QUERY_CACHE_NO_OFFSET_LIMIT)) {
+            $dqlParts = $this->_dqlParts;
+            $this->_dqlParts['limit'] = array();
+            $this->_dqlParts['offset'] = array();
+
+            $dql = $this->getDql();
+
+            // restore dqlParts
+            $this->_dqlParts = $dqlParts;
+        } else {
+            $dql = $this->getDql();
+        }
+
         $hash = md5($dql . var_export($this->_pendingJoinConditions, true) . 'DOCTRINE_QUERY_CACHE_SALT') .'_'. (int)$limitSubquery;
         return $hash;
     }

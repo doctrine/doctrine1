@@ -1019,7 +1019,19 @@ abstract class Doctrine_Query_Abstract
         // [OV7] mysql should also use limit subquery in the same format as pgsql
         if ($this->isLimitSubqueryUsed()/* &&
                 $this->_conn->getAttribute(Doctrine_Core::ATTR_DRIVER_NAME) !== 'mysql'*/) {
-            $params = array_merge((array) $params, (array) $params);
+
+            // [OV10] params duplicates for subquery should be inserted in correct place in params array.
+            // count occurrences of '?' character before subquery (which are not in quotes nor double quotes)
+            $queryBeforeSubquery = substr($query, 0, strpos($query, $this->_limitSubquerySql));
+            // remove quoted or double-quoted parts
+            $queryBeforeSubquery = preg_replace('/\"[^"]*\"|\'[^\']*\'/', '', $queryBeforeSubquery);
+            $count = substr_count($queryBeforeSubquery, '?');
+            if($count > 0) {
+                array_splice($params, $count, 0, $params);
+            } else {
+                // no question marks, we could have named params then. do it "the original" way
+                $params = array_merge((array) $params, (array) $params);
+            }
         }
 
         if ($this->_type !== self::SELECT) {

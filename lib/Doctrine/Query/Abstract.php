@@ -211,6 +211,13 @@ abstract class Doctrine_Query_Abstract
      */
     protected $_queryComponents = array();
 
+    /**
+     * [OV11]
+     * Added parent query components for subqueries, to indicate subquery context
+     * @var array
+     */
+    protected $_parentQueryComponents = array();
+
 	/**
      * Stores the root DQL alias
      *
@@ -799,6 +806,8 @@ abstract class Doctrine_Query_Abstract
         // [OV5] do not set queryComponents by reference to a subquery - what happens in subquery, stays in subquery
         //$this->_queryComponents =& $query->_queryComponents;
         $this->_queryComponents = $query->_queryComponents;
+        // [OV11] added parent query components for subqueries, to indicate subquery context
+        $this->_parentQueryComponents =& $query->_queryComponents;
         $this->_tableAliasSeeds = $query->_tableAliasSeeds;
         return $this;
     }
@@ -918,7 +927,13 @@ abstract class Doctrine_Query_Abstract
             $dql = $this->getDql();
         }
 
-        $hash = md5($dql . var_export($this->_pendingJoinConditions, true) . 'DOCTRINE_QUERY_CACHE_SALT') .'_'. (int)$limitSubquery;
+        // [OV11] added parent query components for subqueries, to indicate subquery context (different cache hash for different context)
+        $hash = md5(
+                $dql
+                . var_export($this->_pendingJoinConditions, true)
+                . var_export(array_keys($this->_parentQueryComponents), true)
+                . 'DOCTRINE_QUERY_CACHE_SALT'
+            ) .'_'. (int)$limitSubquery;
         return $hash;
     }
 

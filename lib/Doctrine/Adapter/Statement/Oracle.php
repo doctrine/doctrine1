@@ -187,7 +187,7 @@ class Doctrine_Adapter_Statement_Oracle implements Doctrine_Adapter_Statement_In
     public function closeCursor()
     {
         $this->bindParams = array();
-        if(is_resource($this->statement)) {
+        if (is_resource($this->statement)) {
             return oci_free_statement($this->statement);
         }
         return true;

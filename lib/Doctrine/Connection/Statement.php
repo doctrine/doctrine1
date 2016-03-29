@@ -64,8 +64,9 @@ class Doctrine_Connection_Statement implements Doctrine_Adapter_Statement_Interf
      *
      * make sure that the cursor is closed
      *
-     * */
-    public function __destruct() {
+     */
+    public function __destruct()
+    {
         $this->closeCursor();
     }
     /**
@@ -269,19 +270,17 @@ class Doctrine_Connection_Statement implements Doctrine_Adapter_Statement_Interf
 
             $this->_conn->getListener()->postStmtExecute($event);
 
-        } catch (PDOException $e) {
-            $result = false;
-            $this->_conn->rethrowException($e, $this);
-        } catch (Doctrine_Adapter_Exception $e) {
-            $result = false;
-            $this->_conn->rethrowException($e, $this);
-        } finally {
-            //fix a possible "ORA-01000: maximum open cursors exceeded" when many non-SELECTs are executed
+            //fix a possible "ORA-01000: maximum open cursors exceeded" when many non-SELECTs are executed and the profiling is enabled
             if (strtoupper(substr($this->_stmt->queryString,0,6)) != 'SELECT' && strtoupper(substr($this->_stmt->queryString,0,4)) != 'WITH' ){
                 $this->closeCursor();
             }
             return $result;
+        } catch (PDOException $e) {
+        } catch (Doctrine_Adapter_Exception $e) {
         }
+
+        $this->_conn->rethrowException($e, $this);
+
         return false;
     }
 

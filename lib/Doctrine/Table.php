@@ -257,12 +257,18 @@ class Doctrine_Table extends Doctrine_Configurable implements Countable
 
             $this->initIdentifier();
 
+            // [OV12] Doctrine_Table::columnCount was not refreshed if behaviors added in Doctrine_Record::setUp added some columns
+            $columnCount = count($this->_columns);
+
             $this->record->setUp();
 
             // if tree, set up tree
             if ($this->isTree()) {
                 $this->getTree()->setUp();
             }
+
+            // [OV12]
+            $this->columnCount += count($this->_columns) - $columnCount;
         } else {
             if ( ! isset($this->_options['tableName'])) {
                 $this->setTableName(Doctrine_Inflector::tableize($this->_options['name']));

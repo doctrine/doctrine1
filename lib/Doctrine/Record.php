@@ -2076,11 +2076,6 @@ abstract class Doctrine_Record extends Doctrine_Record_Abstract implements Count
             }
 
             if ($deep && $this->getTable()->hasRelation($key)) {
-                // [OV2] do not load relation when it's not necessary
-                /*if ( ! $this->$key) {
-                    $this->refreshRelated($key);
-                }*/
-
                 if (is_array($value)) {
                     $rel = $this->getTable()->getRelation($key);
                     if (isset($value[0]) && ! is_array($value[0])) {
@@ -2091,6 +2086,10 @@ abstract class Doctrine_Record extends Doctrine_Record_Abstract implements Count
                         // but not for n:1 relations
                         $this->unlink($key, array());
                     } else {
+                        // [OV2] load relation data only if not linking/unlinking by ids
+                        if ( ! $this->$key) {
+                            $this->refreshRelated($key);
+                        }
                         $this->$key->fromArray($value, $deep);
                     }
                 }
@@ -2135,11 +2134,6 @@ abstract class Doctrine_Record extends Doctrine_Record_Abstract implements Count
             }
 
             if ($deep && $this->getTable()->hasRelation($key)) {
-                // [OV2] do not load relation when it's not necessary
-                /*if ( ! $this->$key) {
-                    $this->refreshRelated($key);
-                }*/
-
                 if (is_array($value)) {
                     $rel = $this->getTable()->getRelation($key);
                     if (isset($value[0]) && ! is_array($value[0])) {
@@ -2150,6 +2144,10 @@ abstract class Doctrine_Record extends Doctrine_Record_Abstract implements Count
                         // but not for n:1 relations
                         $this->unlink($key, array());
                     } else {
+                        // [OV2] load relation data only if not linking/unlinking by ids
+                        if ( ! $this->$key) {
+                            $this->refreshRelated($key);
+                        }
                         $this->$key->synchronizeWithArray($value);
                         $this->$key = $this->$key;
                     }

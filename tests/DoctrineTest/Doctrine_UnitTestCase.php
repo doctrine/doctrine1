@@ -78,7 +78,7 @@ class Doctrine_UnitTestCase extends UnitTestCase
                               'album',
                               'song',
                               'element',
-                              'error',
+                              'testerror',
                               'description',
                               'address',
                               'account',

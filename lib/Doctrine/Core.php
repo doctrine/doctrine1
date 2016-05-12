@@ -678,8 +678,14 @@ class Doctrine_Core
                                 require_once($file->getPathName());
                                 $declaredAfter = get_declared_classes();
 
-                                // Using array_slice because array_diff is broken is some PHP versions
-                                $foundClasses = array_slice($declaredAfter, count($declaredBefore));
+                                if (defined('HHVM_VERSION')) {
+                                    // on HHVM get_declared_classes() returns in a different order, array_diff() works, so we have to use it
+                                    $foundClasses = array_diff($declaredAfter, $declaredBefore);
+                                } else {
+                                    // Using array_slice because array_diff is broken is some PHP versions
+                                    // https://bugs.php.net/bug.php?id=47643
+                                    $foundClasses = array_slice($declaredAfter, count($declaredBefore));
+                                }
 
                                 if ($foundClasses) {
                                     foreach ($foundClasses as $className) {
@@ -748,8 +754,14 @@ class Doctrine_Core
             Doctrine_Core::getTable($model);
 
             $declaredAfter = get_declared_classes();
-            // Using array_slice because array_diff is broken is some PHP versions
-            $foundClasses = array_slice($declaredAfter, count($declaredBefore) - 1);
+            if (defined('HHVM_VERSION')) {
+                // on HHVM get_declared_classes() returns in a different order, array_diff() works, so we have to use it
+                $foundClasses = array_diff($declaredAfter, $declaredBefore);
+            } else {
+                // Using array_slice because array_diff is broken is some PHP versions
+                // https://bugs.php.net/bug.php?id=47643
+                $foundClasses = array_slice($declaredAfter, count($declaredBefore) - 1);
+            }
             foreach ($foundClasses as $class) {
                 if (self::isValidModelClass($class)) {
                     $models[] = $class;

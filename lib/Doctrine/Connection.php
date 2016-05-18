@@ -1413,8 +1413,8 @@ abstract class Doctrine_Connection extends Doctrine_Configurable implements Coun
             /* @var $listener Closure */
             $event = new Doctrine_Event($this, Doctrine_Event::LISTENER_COMMIT);
             $listener($event);
-            unset($this->commitListeners[$index]);
         }
+        $this->commitListeners  = [];
 
         if ($this->getTransactionLevel() == 0) {
             // Run callbacks after main commit end
@@ -1422,8 +1422,9 @@ abstract class Doctrine_Connection extends Doctrine_Configurable implements Coun
                 /* @var $listener Closure */
                 $event = new Doctrine_Event($this, Doctrine_Event::LISTENER_COMMIT);
                 $listener($event);
-                unset($this->commitMainListeners[$index]);
             }
+
+            $this->commitMainListeners  = [];
         }
 
 

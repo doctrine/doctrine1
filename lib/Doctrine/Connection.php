@@ -184,6 +184,20 @@ abstract class Doctrine_Connection extends Doctrine_Configurable implements Coun
         );
 
     /**
+     * Список коллбеков в которые будут выполнены после завершения текущей транзакции
+     *
+     * @var array
+     */
+    protected $commitListeners  = [];
+
+    /**
+     * Список коллбеков в которые будут выполнены после завершения главной транзакции
+     *
+     * @var array
+     */
+    protected $commitMainListeners  = [];
+
+    /**
      * the constructor
      *
      * @param Doctrine_Manager $manager                 the manager object
@@ -1392,7 +1406,42 @@ abstract class Doctrine_Connection extends Doctrine_Configurable implements Coun
      */
     public function commit($savepoint = null)
     {
-        return $this->transaction->commit($savepoint);
+        $res = $this->transaction->commit($savepoint);
+
+        // Run callbacks after commit end
+        foreach ($this->commitListeners as $index => $listener) {
+            /* @var $listener Closure */
+            $event = new Doctrine_Event($this, Doctrine_Event::LISTENER_COMMIT);
+            $listener($event);
+            unset($this->commitListeners[$index]);
+        }
+
+        if ($this->getTransactionLevel() == 0) {
+            // Run callbacks after main commit end
+            foreach ($this->commitMainListeners as $index => $listener) {
+                /* @var $listener Closure */
+                $event = new Doctrine_Event($this, Doctrine_Event::LISTENER_COMMIT);
+                $listener($event);
+                unset($this->commitMainListeners[$index]);
+            }
+        }
+
+
+        return $res;
+    }
+
+    /**
+     * Run $listener after current transaction is done
+     *
+     * @param Closure $listener
+     * @param bool $mainTransaction run only after main transaction
+     */
+    public function runAfterCommit(Closure $listener, $mainTransaction = false) {
+        if ($mainTransaction) {
+            $this->commitMainListeners[]    = $listener;
+        } else {
+            $this->commitListeners[]        = $listener;
+        }
     }
 
     /**
@@ -1411,6 +1460,9 @@ abstract class Doctrine_Connection extends Doctrine_Configurable implements Coun
      */
     public function rollback($savepoint = null)
     {
+        // Clear callbacks
+        $this->commitMainListeners = [];
+        $this->commitListeners = [];
         return $this->transaction->rollback($savepoint);
     }
 

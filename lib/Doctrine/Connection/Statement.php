@@ -59,7 +59,16 @@ class Doctrine_Connection_Statement implements Doctrine_Adapter_Statement_Interf
             throw new Doctrine_Exception('Unknown statement object given.');
         }
     }
-
+    /**
+     * destructor
+     *
+     * make sure that the cursor is closed
+     *
+     */
+    public function __destruct()
+    {
+        $this->closeCursor();
+    }
     /**
      * getConnection
      * returns the connection object this statement uses
@@ -261,6 +270,10 @@ class Doctrine_Connection_Statement implements Doctrine_Adapter_Statement_Interf
 
             $this->_conn->getListener()->postStmtExecute($event);
 
+            //fix a possible "ORA-01000: maximum open cursors exceeded" when many non-SELECTs are executed and the profiling is enabled
+            if (strtoupper(substr($this->_stmt->queryString,0,6)) != 'SELECT' && strtoupper(substr($this->_stmt->queryString,0,4)) != 'WITH' ){
+                $this->closeCursor();
+            }
             return $result;
         } catch (PDOException $e) {
         } catch (Doctrine_Adapter_Exception $e) {

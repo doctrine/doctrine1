@@ -80,9 +80,9 @@ class Doctrine_Ticket_1876_TestCase extends Doctrine_UnitTestCase
                 $q->getCountSqlQuery(), 
                 'SELECT COUNT(*) AS num_results ' . 
                 'FROM (SELECT t.id FROM t1876__recipe t ' . 
-                'LEFT JOIN t1876__company t2 ON t.company_id = t2.id AND (t2.deleted_at IS NULL) ' .
-                'LEFT JOIN t1876__recipe_ingredient t3 ON t.id = t3.recipe_id AND (t3.deleted_at IS NULL) ' .
-                'WHERE t2.id = ? AND (t.deleted_at IS NULL) ' .
+                'LEFT JOIN t1876__company t2 ON ( t.company_id = t2.id ) AND (t2.deleted_at IS NULL) ' .
+                'LEFT JOIN t1876__recipe_ingredient t3 ON ( t.id = t3.recipe_id ) AND (t3.deleted_at IS NULL) ' .
+                'WHERE ( t2.id = ? ) AND (t.deleted_at IS NULL) ' .
                 'GROUP BY t.id) dctrn_count_query'
             );
             $this->assertEqual($q->count(), 3);

@@ -51,37 +51,52 @@ class Doctrine_AuditLog_Listener extends Doctrine_Record_Listener
     }
 
     /**
-     * Pre insert event hook for incrementing version number
+     * Pre save event hook for incrementing version number
      *
      * @param   Doctrine_Event $event
      * @return  void
      */
-    public function preInsert(Doctrine_Event $event)
+    public function preSave(Doctrine_Event $event)
     {
         $version = $this->_auditLog->getOption('version');
         $name = $version['alias'] === null ? $version['name'] : $version['alias'];
 
+        $conn = Doctrine_Manager::getInstance()->getCurrentConnection();
+        $conn->beginTransaction();
+
         $record = $event->getInvoker();
-        $record->set($name, $this->_getInitialVersion($record));
+        $record->set($name, $this->_getNextVersion($record));
     }
 
     /**
-     * Post insert event hook which creates the new version record
+     * Post save event hook for inserting new version record
      * This will only insert a version record if the auditLog is enabled
      *
      * @param   Doctrine_Event $event 
      * @return  void
      */
-    public function postInsert(Doctrine_Event $event) 
+    private function _postSave(Doctrine_Event $event)
     {
         if ($this->_auditLog->getOption('auditLog')) {
             $class = $this->_auditLog->getOption('className');
 
             $record  = $event->getInvoker();
             $version = new $class();
-            $version->merge($record->toArray(), false);
+            $version->merge($record->toArray(false), false);
             $version->save();
         }
+        $conn = Doctrine_Manager::getInstance()->getCurrentConnection();
+        $conn->commit();
+    }
+
+    public function postUpdate(Doctrine_Event $event)
+    {
+        $this->_postSave($event);
+    }
+
+    public function postInsert(Doctrine_Event $event)
+    {
+        $this->_postSave($event);
     }
 
     /**
@@ -115,41 +130,6 @@ class Doctrine_AuditLog_Listener extends Doctrine_Record_Listener
     }
 
     /**
-     * Pre update event hook for inserting new version record
-     * This will only insert a version record if the auditLog is enabled
-     *
-     * @param  Doctrine_Event $event
-     * @return void
-     */
-    public function preUpdate(Doctrine_Event $event)
-    {
-        if ($this->_auditLog->getOption('auditLog')) {
-            $class  = $this->_auditLog->getOption('className');
-            $record = $event->getInvoker();
-
-            $version = $this->_auditLog->getOption('version');
-            $name = $version['alias'] === null ? $version['name'] : $version['alias'];
-
-            $record->set($name, $this->_getNextVersion($record));
-
-            $version = new $class();
-            $version->merge($record->toArray(), false);
-            $version->save();
-        }
-    }
-
-    /**
-     * Get the initial version number for the audit log
-     *
-     * @param Doctrine_Record $record
-     * @return integer $initialVersion
-     */
-    protected function _getInitialVersion(Doctrine_Record $record)
-    {
-        return 1;
-    }
-
-    /**
      * Get the next version number for the audit log
      *
      * @param Doctrine_Record $record 
@@ -157,8 +137,6 @@ class Doctrine_AuditLog_Listener extends Doctrine_Record_Listener
      */
     protected function _getNextVersion(Doctrine_Record $record)
     {
-      if ($this->_auditLog->getOption('auditLog')) {
-          return ($this->_auditLog->getMaxVersion($record) + 1);
-      }
+        return ($this->_auditLog->getMaxVersion($record) + 1);
     }
 }

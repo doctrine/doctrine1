@@ -41,6 +41,7 @@ class Doctrine_Search extends Doctrine_Record_Generator
                                 'analyzer_options' => array(),
                                 'type'             => self::INDEX_TABLES,
                                 'className'        => '%CLASS%Index',
+                                'tableName'        => '%TABLE%_index',
                                 'generatePath'     => false,
                                 'table'            => null,
                                 'batchUpdates'     => false,

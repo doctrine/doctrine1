@@ -70,7 +70,7 @@ class Doctrine_Ticket_DC841_TestCase extends Doctrine_UnitTestCase
             ->where('t.username = ?', 'foo')
             ->execute();
 
-        $expected = "SELECT [t].[id] AS [t__id], [t].[username] AS [t__username], [t].[password] AS [t__password], [t].[foo] AS [t__foo], [t2].[id] AS [t2__id], [t2].[username] AS [t2__username], [t2].[password] AS [t2__password], [t2].[foo] AS [t2__foo] FROM [ticket__d_c841__model] [t] LEFT JOIN [ticket__d_c841__model] [t2] ON [t].[id] = [t2].[id] AND ([t].[id] = 30) WHERE ([t].[username] = 'foo')";
+        $expected = "SELECT [t].[id] AS [t__id], [t].[username] AS [t__username], [t].[password] AS [t__password], [t].[foo] AS [t__foo], [t2].[id] AS [t2__id], [t2].[username] AS [t2__username], [t2].[password] AS [t2__password], [t2].[foo] AS [t2__foo] FROM [ticket__d_c841__model] [t] LEFT JOIN [ticket__d_c841__model] [t2] ON ( [t].[id] = [t2].[id] ) AND ([t].[id] = 30) WHERE ([t].[username] = 'foo')";
         $sql = current(array_slice($this->dbh->getAll(), $this->sqlStackCounter++, 1));
 
         $this->assertEqual($expected, $sql);

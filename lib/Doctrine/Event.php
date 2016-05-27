@@ -52,6 +52,7 @@ class Doctrine_Event
     const SAVEPOINT_CREATE   = 34;
     const SAVEPOINT_ROLLBACK = 35;
     const SAVEPOINT_COMMIT   = 36;
+    const LISTENER_COMMIT    = 37;
 
     const HYDRATE            = 40;
 

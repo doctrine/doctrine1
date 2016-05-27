@@ -188,6 +188,13 @@ abstract class Doctrine_Record extends Doctrine_Record_Abstract implements Count
     protected $_invokedSaveHooks = false;
 
     /**
+     * If values were modified multiple times this array will store the original ones, not previous ones
+     *
+     * @var array $_originalValues
+     */
+    protected $_originalValues = [];
+
+    /**
      * @var integer $index                  this index is used for creating object identifiers
      */
     private static $_index = 1;
@@ -1456,8 +1463,15 @@ abstract class Doctrine_Record extends Doctrine_Record_Abstract implements Count
         return $this->_set($fieldName, $value, $load);
     }
 
-    protected function _set($fieldName, $value, $load = true)
-    {
+    protected function _set($fieldName, $value, $load = true) {
+        if ($value instanceof DateTime) { // instanceof тут не подведет с наследованием
+            if ($this->getTable()->getColumnDefinition($fieldName)["type"] == "timestamp") {
+                $value = $value->format("Y-m-d H:i:s");
+            } else {
+                throw new Doctrine_Exception("Attempt to assign DateTime to non-timestamp field");
+            }
+        }
+
         if (array_key_exists($fieldName, $this->_values)) {
             $this->_values[$fieldName] = $value;
         } else if (array_key_exists($fieldName, $this->_data)) {
@@ -1475,14 +1489,18 @@ abstract class Doctrine_Record extends Doctrine_Record_Abstract implements Count
             } else {
                 $old = $this->_data[$fieldName];
             }
-            
+
             if ($this->_isValueModified($type, $old, $value)) {
                 if ($value === null) {
-                    $value = $this->_table->getDefaultValueOf($fieldName); 
+                    $value = $this->_table->getDefaultValueOf($fieldName);
                 }
                 $this->_data[$fieldName] = $value;
                 $this->_modified[] = $fieldName;
                 $this->_oldValues[$fieldName] = $old;
+
+                if (!isset($this->_originalValues[$fieldName])) {
+                    $this->_originalValues[$fieldName] = $old;
+                }
 
                 switch ($this->_state) {
                     case Doctrine_Record::STATE_CLEAN:
@@ -2478,18 +2496,31 @@ abstract class Doctrine_Record extends Doctrine_Record_Abstract implements Count
             $q = $rel->getAssociationTable()
                 ->createQuery()
                 ->delete()
-                ->where($rel->getLocal() . ' = ?', array_values($this->identifier()));
+                ->where($rel->getLocalFieldName() . ' = ?', array_values($this->identifier()));
 
             if (count($ids) > 0) {
-                $q->whereIn($rel->getForeign(), $ids);
+                $q->whereIn($rel->getForeignFieldName(), $ids);
             }
 
             $q->execute();
+
         } else if ($rel instanceof Doctrine_Relation_ForeignKey) {
             $q = $rel->getTable()->createQuery()
                 ->update()
-                ->set($rel->getForeign(), '?', array(null))
-                ->addWhere($rel->getForeign() . ' = ?', array_values($this->identifier()));
+                ->set($rel->getForeignFieldName(), '?', array(null))
+                ->addWhere($rel->getForeignFieldName() . ' = ?', array_values($this->identifier()));
+
+            if (count($ids) > 0) {
+                $q->whereIn($rel->getTable()->getIdentifier(), $ids);
+            }
+
+            $q->execute();
+
+        } else if ($rel instanceof Doctrine_Relation_LocalKey) {
+            $q = $this->getTable()->createQuery()
+                ->update()
+                ->set($rel->getLocalFieldName(), '?', array(null))
+                ->addWhere($rel->getTable()->getIdentifier() . ' = ?', array_values($this->identifier()));
 
             if (count($ids) > 0) {
                 $q->whereIn($rel->getTable()->getIdentifier(), $ids);
@@ -2497,6 +2528,7 @@ abstract class Doctrine_Record extends Doctrine_Record_Abstract implements Count
 
             $q->execute();
         }
+
         return $this;
     }
 
@@ -2714,5 +2746,212 @@ abstract class Doctrine_Record extends Doctrine_Record_Abstract implements Count
     public function __toString()
     {
         return (string) $this->_oid;
+    }
+
+
+    /**
+     * Отличается от getModified(true) тем что возвращает первоначальные значения (тобишь, если изменить переменную несколько раз, вернется её первоначальное значение, а не предпоследнее)
+     * @param bool $last
+     *
+     * @return array
+     */
+    public function getOriginalValues($last = false)
+    {
+        $a = [];
+
+        $modified = $last ? $this->_lastModified:$this->_modified;
+
+        foreach ($modified as $fieldName) {
+            $a[$fieldName] = isset($this->_originalValues[$fieldName])
+                ? $this->_originalValues[$fieldName]
+                : $this->getTable()->getDefaultValueOf($fieldName);
+        }
+
+        return $a;
+    }
+
+    /**
+     * @param string    $field                  поле класса в которое пишем
+     * @param array     $data                   Данные (массив, который примержится к текущему)
+     * @param bool      $recursive_merge        Мержить рекурсивно
+     * @param bool      $overwrite              Перезаписать
+     */
+    public function setArrayValues($field, array $data, $recursive_merge = false, $overwrite = false) {
+        $savedData = $this->$field;
+
+        if (!$savedData) {
+            $savedData = [];
+        }
+
+        if (!$overwrite) {
+            if ($recursive_merge) {
+                $this->$field = array_merge_recursive_simple($savedData, $data);
+            } else {
+                $this->$field = array_merge($savedData, $data);
+            }
+        } else {
+            $this->$field = $data;
+        }
+    }
+
+    public function setArrayValue($field, $key, $value, $unsetIfEmpty = false) {
+        $f = $this->$field;
+
+        if ($unsetIfEmpty && trim($value) === "") {
+            unset($f[$key]);
+        }
+        else {
+            $f[$key] = $value;
+        }
+
+        $this->$field = $f;
+    }
+
+
+    /**
+     * @param $field
+     * @param $name
+     */
+    public function unsetArrayValue($field, $name) {
+        $data = $this->$field;
+
+        if (array_key_exists($name, $data)) {
+            unset ($data[$name]);
+
+            $this->$field = $data;
+        }
+    }
+
+    /**
+     * @param $field
+     * @return array
+     * @throws Doctrine_Exception
+     */
+    public function getEnumValues($field) {
+        $def = $this->getTable()->getColumnDefinition($field);
+
+        if ($def['type'] == 'enum') {
+            return $def['values'];
+        } else {
+            throw new Doctrine_Exception("$field is not enum");
+        }
+    }
+
+    /**
+     * @param $relation
+     *
+     * @return bool
+     */
+    public function isRelationLoaded($relation) {
+        return isset($this->_references[$relation]);
+    }
+
+    /**
+     * @param $col
+     *
+     * @return bool
+     */
+    public function columnExists($col) {
+        return $this->_table->hasColumn($col);
+    }
+
+    /** @var array */
+    protected $_primaryKey = null;
+
+    /**
+     * @return array
+     */
+    public function getPrimaryKey() {
+        if ($this->_primaryKey === null) {
+            $this->_primaryKey = [];
+
+            foreach ($this->_table->getColumns() as $columnName => $definition) {
+                if ($definition['primary']) {
+                    $this->_primaryKey[] = $columnName;
+                }
+            }
+        }
+
+        return $this->_primaryKey;
+    }
+
+    /**
+     * @return int|string
+     */
+    public function getPKIdentifier() {
+
+        if ($this->columnExists('id')) {
+            return $this->id;
+        } else {
+            $pk = $this->getPrimaryKey();
+
+            if (count($pk) === 1) {
+                return $this[$pk[0]];
+            } else {
+                $ids = [];
+                foreach ($pk as $pk_part) {
+                    $ids[] = $this[$pk_part];
+                }
+
+                return implode("__", $ids);
+            }
+        }
+    }
+
+    public static function getById($id, $queryRelations = null) {
+        $cc = get_called_class();
+        if ($queryRelations !== null && count($queryRelations)) {
+            $q = Doctrine_Query::create()
+                ->from("$cc o")
+                ->where('o.id = ?', $id);
+            foreach ($queryRelations as $rel) {
+                $q->leftJoin("o.$rel");
+            }
+
+            return $q->fetchOne();
+        }
+        return self::T()->find($id);
+    }
+
+    /**
+     * @return Doctrine_Collection
+     */
+    public static function getAll() {
+        return self::T()->findAll();
+    }
+
+    /**
+     * @return Doctrine_Table
+     */
+    public static function T() {
+        return Doctrine::getTable(get_called_class());
+    }
+
+    /**
+     * Пробрасывает findBy*() и findOneBy*() меджик геттеры
+     *
+     * @param $method
+     * @param $arguments
+     *
+     * @throws Doctrine_Table_Exception
+     * @return mixed
+     */
+    public static function __callStatic($method, $arguments) {
+        $lcMethod = strtolower($method);
+
+        if (substr($lcMethod, 0, 6) == 'findby' || substr($lcMethod, 0, 9) == 'findoneby') {
+            return call_user_func_array([self::T(), $method], $arguments);
+        } else {
+            $c = get_called_class();
+
+            throw new Doctrine_Table_Exception("Unknown static method {$c}::{$method}()");
+        }
+    }
+    
+    /**
+     * @return string
+     */
+    public function getClass() {
+        return get_class($this);
     }
 }

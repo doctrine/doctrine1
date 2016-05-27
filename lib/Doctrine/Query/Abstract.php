@@ -1118,8 +1118,8 @@ abstract class Doctrine_Query_Abstract
                 $params = array('component' => $component, 'alias' => $alias);
                 $event = new Doctrine_Event($record, $callback['const'], $this, $params);
 
-                $record->$callback['callback']($event);
-                $table->getRecordListener()->$callback['callback']($event);
+                $record->{$callback['callback']}($event);
+                $table->getRecordListener()->{$callback['callback']}($event);
             }
         }
 
@@ -1149,7 +1149,7 @@ abstract class Doctrine_Query_Abstract
         $copy->free();
 
         if ($componentsBefore !== $componentsAfter) {
-            return array_diff($componentsAfter, $componentsBefore);
+            return Doctrine_Lib::arrayDiffSimple($componentsAfter, $componentsBefore);
         } else {
             return $componentsAfter;
         }
@@ -1368,6 +1368,15 @@ abstract class Doctrine_Query_Abstract
     {
         // if there's no params, return (else we'll get a WHERE IN (), invalid SQL)
         if (isset($params) and (count($params) == 0)) {
+            // Semantically this error should have the level of E_USER_NOTICE,
+            // however, introducing a new E_USER_NOTICE may lead to a change of behavior.
+            // E_USER_DEPRECATED, on the other side, are very likely to be silenced
+            // anyway, and are expected to appear just by upgrading.
+            trigger_error(
+            	'andWhereIn with an empty array is counter-intuitive,'
+            	.' see https://github.com/drak/doctrine1/pull/15',
+            	E_USER_DEPRECATED
+            );
             return $this;
         }
 
@@ -1651,6 +1660,8 @@ abstract class Doctrine_Query_Abstract
      */
     public function innerJoin($join, $params = array())
     {
+        $this->checkIfCanJoin();
+
         if (is_array($params)) {
             $this->_params['join'] = array_merge($this->_params['join'], $params);
         } else {
@@ -1669,6 +1680,8 @@ abstract class Doctrine_Query_Abstract
      */
     public function leftJoin($join, $params = array())
     {
+        $this->checkIfCanJoin();
+
         if (is_array($params)) {
             $this->_params['join'] = array_merge($this->_params['join'], $params);
         } else {
@@ -2167,5 +2180,18 @@ abstract class Doctrine_Query_Abstract
     public function setDisableLimitSubquery($disableLimitSubquery)
     {
         $this->disableLimitSubquery = $disableLimitSubquery;
+    }
+
+    private function checkIfCanJoin()
+    {
+        // Joins in Updates and Deletes are not SQL standard,
+        // Doctrine does not support them even on supporting databases:
+        // http://www.doctrine-project.org/jira/browse/DC-202
+        if ($this->getType() !== self::SELECT) {
+            trigger_error(
+                'Joins are only supported with SELECTs',
+                E_USER_DEPRECATED
+            );
+        }
     }
 }

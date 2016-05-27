@@ -34,12 +34,27 @@ class Doctrine_Task_Migrate extends Doctrine_Task
 {
     public $description          =   'Migrate database to latest version or the specified version',
            $requiredArguments    =   array('migrations_path' => 'Specify path to your migrations directory.'),
-           $optionalArguments    =   array('version' => 'Version to migrate to. If you do not specify, the db will be migrated from the current version to the latest.');
+           $optionalArguments    =   array('timestamp' => 'Timestamp to migrate to. If you do not specify, the db will be migrated from the current version to the latest.  Provide \'-1\' to list past migrations.');
     
     public function execute()
     {
-        $version = Doctrine_Core::migrate($this->getArgument('migrations_path'), $this->getArgument('version'));
+        if($this->getArgument('timestamp') == -1) {
+            $conn = Doctrine_Manager::connection();
+            $m = new Doctrine_Migration();
+            $existingMigrations = $conn->fetchAll("SELECT timestamp_value, class_name FROM " . $m->getTableName() . " ORDER BY timestamp_value ASC");
+            if(empty($existingMigrations)) {
+                $this->notify('No migrations have occurred yet.');
+            } else {
+                $output = "";
+                foreach($existingMigrations as $migration) {
+                    $output .= "\n{$migration['timestamp_value']} - {$migration['class_name']}";
+                }
+                $this->notify($output);
+            }
+        } else {
+            $version = Doctrine_Core::migrate($this->getArgument('migrations_path'), $this->getArgument('timestamp'));
         
-        $this->notify('migrated successfully to version #' . $version);
+            $this->notify('migrated successfully');
+        }
     }
 }

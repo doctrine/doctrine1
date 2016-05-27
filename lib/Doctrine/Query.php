@@ -1042,6 +1042,12 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
                     // apply inheritance to WHERE part
                     if ( ! empty($where)) {
                         if (count($this->_sqlParts['where']) > 0) {
+                            // Put the current WHERE expression in parentheses to work around precedence bug
+                            // in combination with pending joins:
+                            // http://www.doctrine-project.org/jira/browse/DC-944
+                            array_unshift($this->_sqlParts['where'], '(');
+                            $this->_sqlParts['where'][] = ')';
+
                             $this->_sqlParts['where'][] = 'AND';
                         }
 
@@ -1075,6 +1081,17 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
 
                 if ( ! $ignorePending && isset($this->_pendingJoinConditions[$k])) {
                     if (strpos($part, ' ON ') !== false) {
+                        // Put the current ON expression in parentheses to work around precedence bug
+                        // in combination with pending joins:
+                        // http://www.doctrine-project.org/jira/browse/DC-944
+                        //
+                        // $part is for instance:
+                        // LEFT JOIN `appointment_invitations` `a2` ON `a`.`id` = `a2`.`appointment_id`
+                        // Modify it to:
+                        // LEFT JOIN `appointment_invitations` `a2` ON (`a`.`id` = `a2`.`appointment_id`)
+                        $onpos = strrpos($part, ' ON ');
+                        $part = substr($part, 0, $onpos) . ' ON ( ' . substr($part, $onpos + 4) . ' )';
+
                         $part .= ' AND ';
                     } else {
                         $part .= ' ON ';
@@ -2029,6 +2046,10 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
     }
 
     /**
+     * Оверрайд доктриновского метода.
+     * Добавлен ORDER BY по той же колонке что и GROUP BY.
+     * Это должно сильно увеличить производительность каунтов с джойнами.
+     *
      * Get count sql query for this Doctrine_Query instance.
      *
      * This method is used in Doctrine_Query::count() for returning an integer
@@ -2039,12 +2060,13 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
     public function getCountSqlQuery()
     {
         // triggers dql parsing/processing
-        $this->getSqlQuery(array(), false); // this is ugly
+        $this->getSqlQuery([], false); // this is ugly
 
         // initialize temporary variables
         $where   = $this->_sqlParts['where'];
         $having  = $this->_sqlParts['having'];
         $groupby = $this->_sqlParts['groupby'];
+        $orderby = '';
 
         $rootAlias = $this->getRootAlias();
         $tableAlias = $this->getSqlTableAlias($rootAlias);
@@ -2098,9 +2120,10 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
             // If we do not have a custom group by, apply the default one
             if (empty($groupby)) {
                 $groupby = ' GROUP BY ' . $pkFields;
+                $orderby = ' ORDER BY ' . $pkFields;
             }
 
-            $q .= '(SELECT ' . $selectFields . ' FROM ' . $from . $where . $groupby . $having . ') '
+            $q .= '(SELECT ' . $selectFields . ' FROM ' . $from . $where . $groupby . $having . $orderby . ') '
                 . $this->_conn->quoteIdentifier('dctrn_count_query');
         }
 
@@ -2245,5 +2268,69 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
         $this->reset();
         $this->_parsers = array();
         $this->_dqlParts = array();
+    }
+
+
+
+    /**
+     * @param $field
+     *
+     * @return float
+     */
+    public function sum($field) {
+        $query = $this->select("SUM($field) as ___sum")->execute([], Doctrine::HYDRATE_SINGLE_SCALAR);
+        return $query === null ? 0 : $query;
+    }
+
+    /**
+     * Устанавливает условия по отлову дат.
+     * @param array     $date_range     array('begin' => DateTime, ['end' => DateTime])
+     * @param string    $table          table alias
+     * @param string    $field          created_at by default
+     *
+     * @return $this
+     */
+    public function dateBetween($date_range, $table, $field = 'created_at') {
+        if (!count($date_range))
+            return $this;
+
+        if (isset($date_range['begin'])) {
+            $begin = $date_range['begin']->format('Y-m-d H:i:s');
+        }
+
+        if (isset($date_range['end'])) {
+            $end = $date_range['end']->setTime(23,59,59)->format('Y-m-d H:i:s'); // or else it will exclude last day.
+        }
+
+        if (isset($date_range['begin']) && isset($date_range['end']))
+            $this->addWhere("{$table}.{$field} BETWEEN STR_TO_DATE('{$begin}', '%Y-%m-%d %H:%i:%s') AND STR_TO_DATE('{$end}', '%Y-%m-%d %H:%i:%s')"
+            );
+        elseif (isset($date_range['begin']))
+            $this->addWhere("{$table}.{$field} >= STR_TO_DATE('{$begin}', '%Y-%m-%d %H:%i:%s')");
+        elseif (isset($date_range['end']))
+            $this->addWhere("{$table}.{$field} <= STR_TO_DATE('{$end}', '%Y-%m-%d %H:%i:%s')");
+
+        return $this;
+
+    }
+
+    public function increment($field) {
+        return $this->set($field, "$field + 1");
+    }
+
+    /**
+     * select
+     * sets the SELECT part of the query
+     *
+     * @param string $select Query SELECT part
+     * @param array  $params
+     *
+     * @return Doctrine_Query
+     * @throws Doctrine_Query_Exception
+     */
+    public function andSelect($select = null)
+    {
+        $this->_type = self::SELECT;
+        return $this->_addDqlQueryPart('select', $select, true);
     }
 }

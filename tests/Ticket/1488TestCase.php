@@ -37,7 +37,7 @@ class Doctrine_Ticket_1488_TestCase extends Doctrine_UnitTestCase
         $q = Doctrine_Query::create()
             ->from('T1488_Class1 c1')
             ->leftJoin('c1.Classes2 c2 WITH c2.value BETWEEN c1.min AND c1.max');
-        $this->assertEqual($q->getSqlQuery(), 'SELECT t.id AS t__id, t.min AS t__min, t.max AS t__max, t2.id AS t2__id, t2.value AS t2__value FROM t1488__class1 t LEFT JOIN t1488__relation t3 ON (t.id = t3.c1_id) LEFT JOIN t1488__class2 t2 ON t2.id = t3.c2_id AND (t2.value BETWEEN t.min AND t.max)');
+        $this->assertEqual($q->getSqlQuery(), 'SELECT t.id AS t__id, t.min AS t__min, t.max AS t__max, t2.id AS t2__id, t2.value AS t2__value FROM t1488__class1 t LEFT JOIN t1488__relation t3 ON (t.id = t3.c1_id) LEFT JOIN t1488__class2 t2 ON ( t2.id = t3.c2_id ) AND (t2.value BETWEEN t.min AND t.max)');
     }
 }
 

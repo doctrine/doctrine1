@@ -90,6 +90,6 @@ class Doctrine_Query_JoinCondition_TestCase extends Doctrine_UnitTestCase
 
         $q->parseDqlQuery("SELECT a.name, b.id FROM User a LEFT JOIN a.Phonenumber b WITH a.id NOT IN (1, 2, 3)");
 
-        $this->assertEqual($q->getSqlQuery(), "SELECT e.id AS e__id, e.name AS e__name, p.id AS p__id FROM entity e LEFT JOIN phonenumber p ON e.id = p.entity_id AND (e.id NOT IN (1, 2, 3)) WHERE (e.type = 0)");
+        $this->assertEqual($q->getSqlQuery(), "SELECT e.id AS e__id, e.name AS e__name, p.id AS p__id FROM entity e LEFT JOIN phonenumber p ON ( e.id = p.entity_id ) AND (e.id NOT IN (1, 2, 3)) WHERE (e.type = 0)");
     }
 }

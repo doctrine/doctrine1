@@ -1412,7 +1412,11 @@ abstract class Doctrine_Connection extends Doctrine_Configurable implements Coun
         foreach ($this->commitListeners as $index => $listener) {
             /* @var $listener Closure */
             $event = new Doctrine_Event($this, Doctrine_Event::LISTENER_COMMIT);
-            $listener($event);
+            try {
+                $listener($event);
+            } catch (Exception $e) {
+                // pass errors
+            }
         }
         $this->commitListeners  = [];
 
@@ -1421,7 +1425,11 @@ abstract class Doctrine_Connection extends Doctrine_Configurable implements Coun
             foreach ($this->commitMainListeners as $index => $listener) {
                 /* @var $listener Closure */
                 $event = new Doctrine_Event($this, Doctrine_Event::LISTENER_COMMIT);
-                $listener($event);
+                try {
+                    $listener($event);
+                } catch (Exception $e) {
+                    // pass errors
+                }
             }
 
             $this->commitMainListeners  = [];

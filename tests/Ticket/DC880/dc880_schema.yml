@@ -1,0 +1,46 @@
+## YAML Schema for testing migration when behaviours are present
+880Versionable:
+  actAs:
+    Versionable:
+      versionColumn: version
+      className: %CLASS%Version
+      auditLog: true
+
+880Timestampable:
+  actAs:
+    Timestampable: true
+
+880Sluggable:
+  columns:
+    test: string(255)
+  actAs:
+    Sluggable:
+      unique: true
+      fields: [test]
+      canUpdate: true
+
+880I18n:
+  columns:
+    test: string(255)
+  actAs:
+    I18n:
+      fields: [test]
+
+880NestedSet:
+  actAs:
+    NestedSet: true
+
+880Searchable:
+  columns:
+    test: string(255)
+  actAs:
+    Searchable:
+      fields: [test]
+
+880Geographical:
+  actAs:
+    Geographical: true
+
+880SoftDelete:
+  actAs:
+    SoftDelete: true

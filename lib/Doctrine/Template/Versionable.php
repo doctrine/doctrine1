@@ -45,7 +45,7 @@ class Doctrine_Template_Versionable extends Doctrine_Template
                                                              'length' => 8,
                                                              'options' => array()),
 								'generateRelations' => true,
-                                'tableName'         => false,
+                                'tableName'        => '%TABLE%_version',
                                 'generateFiles'     => false,
                                 'auditLog'          => true,
                                 'deleteVersions'    => true,

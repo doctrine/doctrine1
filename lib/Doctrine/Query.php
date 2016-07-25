@@ -46,7 +46,7 @@
  *              This would also largely reduce the currently huge interface of Doctrine_Query(_Abstract)
  *              and better hide all these transformation internals from the public Query API.
  *
- * @internal    The lifecycle of a Query object is the following:
+ * @comment		Internal comment: The lifecycle of a Query object is the following:
  *              After construction the query object is empty. Through using the fluent
  *              query interface the user fills the query object with DQL parts and query parameters.
  *              These get collected in {@link $_dqlParts} and {@link $_params}, respectively.

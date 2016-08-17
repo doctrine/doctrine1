@@ -373,7 +373,10 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
      */
     public function adjustProcessedParam($index)
     {
-        // Retrieve all params
+        // [OV13] method logic moved to parent class
+        $this->_execParams = $this->_adjustProcessedParam($this->_execParams, $index);
+
+        /*// Retrieve all params
         $params = $this->getInternalParams();
 
         // Retrieve already processed values
@@ -384,7 +387,7 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
         array_splice($last, 0, 1, $last[0]);
 
         // Put all param values into a single index
-        $this->_execParams = array_merge($first, $last);
+        $this->_execParams = array_merge($first, $last);*/
     }
 
     /**
@@ -1189,6 +1192,9 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
                 $queryCacheDriver->save($hash, $serializedQuery, $this->getQueryCacheLifeSpan());
             }
         }
+
+        // [OV13] adjust WHERE IN array param here, after query cache is saved / restored = cache query with single "?"
+        $query = $this->_adjustWhereInSql($query, $this->_execParams);
 
         // [OV9] cache without limit and offset, attach now
         if($queryCacheEnabled && $this->_conn->getAttribute(Doctrine_Core::ATTR_QUERY_CACHE_NO_OFFSET_LIMIT))

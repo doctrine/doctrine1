@@ -218,13 +218,13 @@ abstract class Doctrine_Query_Abstract
      */
     protected $_parentQueryComponents = array();
 
-	/**
+    /**
      * Stores the root DQL alias
      *
      * @var string
      */
     protected $_rootAlias = '';
-	
+    
     /**
      * @var integer $type                   the query type
      *
@@ -389,7 +389,7 @@ abstract class Doctrine_Query_Abstract
         return $q;
     }
 
-	// [OV6]
+    // [OV6]
     /**
      * getDqlWithParams
      * returns the DQL query that is represented by this query object, with interpolated param values
@@ -402,6 +402,10 @@ abstract class Doctrine_Query_Abstract
     {
         $dql = $this->getDql();
         $params = $this->getFlattenedParams();
+        
+        // [OV13]
+        $dql = $this->_adjustWhereInSql($dql, $params);
+
         foreach($params as &$param)
         {
             $param = $this->_conn->quote($param);
@@ -591,13 +595,37 @@ abstract class Doctrine_Query_Abstract
         return $this->_execParams;
     }
 
+    // [OV13]
+    /**
+     * Adjust the processed param index for "foo.bar IN ?" support
+     *
+     * @param array $params
+     * @param int $index
+     * @return array
+     */
+    protected function _adjustProcessedParam(array $params = null, $index)
+    {
+        // Retrieve all params
+        $params = null !== $params ? $params : $this->getInternalParams();
+
+        // Retrieve already processed values
+        $first = array_slice($params, 0, $index);
+        $last = array_slice($params, $index, count($params) - $index);
+
+        // Include array as values splicing the params array
+        array_splice($last, 0, 1, $last[0]);
+
+        // Put all param values into a single index
+        return array_merge($first, $last);
+    }
+
     /**
      * @nodoc
      */
     public function fixArrayParameterValues($params = array())
     {
         $i = 0;
-	
+
         foreach ($params as $param) {
             if (is_array($param)) {
                 $c = count($param);
@@ -1454,9 +1482,10 @@ abstract class Doctrine_Query_Abstract
     public function andWhereIn($expr, $params = array(), $not = false)
     {
         // if there's no params, return (else we'll get a WHERE IN (), invalid SQL)
-        if (isset($params) and (count($params) == 0)) {
+        // [OV13] if there's no params, WHERE IN (NULL) will be used to return empty set
+        /*if (isset($params) and (count($params) == 0)) {
             return $this;
-        }
+        }*/
 
         if ($this->_hasDqlQueryPart('where')) {
             $this->_addDqlQueryPart('where', 'AND', true);
@@ -1481,7 +1510,8 @@ abstract class Doctrine_Query_Abstract
     public function orWhereIn($expr, $params = array(), $not = false)
     {
         // if there's no params, return (else we'll get a WHERE IN (), invalid SQL)
-        if (isset($params) and (count($params) == 0)) {
+        // [OV13] if there's no params, WHERE IN (NULL) will be used to return empty set (last condition added)
+        if (isset($params) and (count($params) == 0) and $this->_hasDqlQueryPart('where')) {
             return $this;
         }
 
@@ -1500,14 +1530,18 @@ abstract class Doctrine_Query_Abstract
         $params = (array) $params;
 
         // if there's no params, return (else we'll get a WHERE IN (), invalid SQL)
-        if (count($params) == 0) {
+        // [OV13] if there's no params, WHERE IN (NULL) will be used to return empty set
+        /*if (count($params) == 0) {
             throw new Doctrine_Query_Exception('You must pass at least one parameter when using an IN() condition.');
-        }
+        }*/
 
+        // [OV13] change the way DQL is generated for array params in WHERE IN clause - keep single "?" and process it only after query cache is saved/restored
+         $mixed = false;
         $a = array();
         foreach ($params as $k => $value) {
             if ($value instanceof Doctrine_Expression) {
                 $value = $value->getSql();
+                $mixed = true;
                 unset($params[$k]);
             } else {
                 $value = '?';
@@ -1515,10 +1549,74 @@ abstract class Doctrine_Query_Abstract
             $a[] = $value;
         }
 
-        $this->_params['where'] = array_merge($this->_params['where'], $params);
-
-        return $expr . ($not === true ? ' NOT' : '') . ' IN (' . implode(', ', $a) . ')';
+        if($mixed) {
+            $this->_params['where'] = array_merge($this->_params['where'], $params);
+        } else {
+            // [OV13] just store the params array
+            $this->_params['where'][] = $params;
+        }
+        
+        return $expr . ($not === true ? ' NOT' : '') . ' IN ' . ($mixed ? '(' . implode(', ', $a) . ')' : '?');
     }
+
+    // [OV13]
+    /**
+     * Adjust array params for "foo.bar IN ?"
+     *
+     * @param $sql
+     * @param array $params reference to params array
+     * @return mixed
+     */
+    protected function _adjustWhereInSql($sql, &$params = null)
+    {
+        $arrParams = array();
+        $maxArrParam = null;
+        foreach($params as $key => $param) {
+            if (is_array($param)) {
+                $count = count($param);
+                $arrParams[$key] = $count;
+                $maxArrParam = $key;
+            }
+        }
+
+        if(!$arrParams) {
+            return $sql;
+        }
+
+        $paramsPos = Doctrine_Lib::getPlaceholderOffsets($sql, $maxArrParam);
+
+        $paramOffset = 0;
+        $sqlOffset = 0;
+        foreach($arrParams as $index => $count) {
+            if(!isset($paramsPos[$index])) continue;
+
+            if(!preg_match('/\sIN\s+(\()?\s*$/i', substr($sql, 0, $paramsPos[$index] + $sqlOffset), $matches)) {
+                // it's not "where in"...
+                continue;
+            }
+
+            // replace single "?" with series of "?, ?"
+            $str = !$count ? 'NULL' : (str_repeat('?, ', $count - 1) . '?');
+            $parenthesed = !empty($matches[1]);
+            if(!$parenthesed) {
+                // wrap with parentheses, if not wrapped
+                $str = '(' . $str . ')';
+            }
+
+            $sql = substr_replace($sql, $str, $paramsPos[$index] + $sqlOffset, 1);
+            $sqlOffset += strlen($str) - 1;
+
+            if(!$count) {
+                unset($params[$index + $paramOffset]); // remove param because it's replaced with 'NULL' in sql
+            } else {
+                $params = $this->_adjustProcessedParam($params, $index + $paramOffset);
+                $paramOffset += $count - 1;
+            }
+        }
+
+        return $sql;
+    }
+
 
     /**
      * Adds NOT IN condition to the query WHERE part.

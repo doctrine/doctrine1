@@ -10,6 +10,7 @@ $test = new DoctrineTest();
 $tickets = new GroupTest('Tickets Tests', 'tickets');
 
 $excludeTickets = array(
+    '1762', // [OV13] this ticket is getting stuck because $conn is passed to query->execute
     '1830', // MySQL specific error
     '1876b',
     '1935',

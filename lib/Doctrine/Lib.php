@@ -422,4 +422,43 @@ class Doctrine_Lib
 
         return true;
     }
+
+    /**
+     * Get offsets of "?" placeholders in an sql string
+     *
+     * @param string $sql
+     * @param int $maxIndex do not check beyond this placeholder occurrence
+     * @return array
+     */
+    public static function getPlaceholderOffsets($sql, $maxIndex = null)
+    {
+        $paramsPos = array();
+        $index = 0;
+        for($i = 0, $l = strlen($sql); $i < $l; $i++) {
+            $char = $sql[$i];
+            if($char === "'" || $char === '"') {
+                // find closing quote
+                do {
+                    $next = strpos(substr($sql, $i + 1), $char);
+                    if($sql[$next - 1] === '\\') { // escaped quote, find next one
+                        $i = $next;
+                        $next = -1;
+                    }
+                } while ($next === -1);
+
+                if(!$next) break;
+                $i = $next;
+                continue;
+            }
+
+            if($char === '?') {
+                $paramsPos[$index] = $i;
+                $index++;
+                if($maxIndex !== null && $index > $maxIndex) break; // we've got enough
+            }
+        }
+
+        return $paramsPos;
+    }
+
 }

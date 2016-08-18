@@ -536,6 +536,7 @@ class Doctrine_Collection extends Doctrine_Access implements Countable, Iterator
         $query = $this->_table->createQuery();
 
         if ( ! isset($name)) {
+            // [OV13] this part until return seems broken
             foreach ($this->data as $record) {
                 $value = $record->getIncremented();
                 if ($value !== null) {
@@ -569,9 +570,12 @@ class Doctrine_Collection extends Doctrine_Access implements Countable, Iterator
             return;
         }
 
-        $dql     = $rel->getRelationDql(count($list), 'collection');
+        // [OV13] it can be optimized now
+        //$dql     = $rel->getRelationDql(count($list), 'collection');
+        //$coll    = $query->query($dql, $list);
 
-        $coll    = $query->query($dql, $list);
+        $dql = $rel->getRelationDql(1, 'collection');
+        $coll    = $query->query($dql, array($list));
 
         $this->populateRelated($name, $coll);
     }

@@ -1193,9 +1193,6 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
             }
         }
 
-        // [OV13] adjust WHERE IN array param here, after query cache is saved / restored = cache query with single "?"
-        $query = $this->_adjustWhereInSql($query, $this->_execParams);
-
         // [OV9] cache without limit and offset, attach now
         if($queryCacheEnabled && $this->_conn->getAttribute(Doctrine_Core::ATTR_QUERY_CACHE_NO_OFFSET_LIMIT))
         {
@@ -1221,6 +1218,34 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
                 $query = $this->_conn->modifyLimitQuery($query, $this->_sqlParts['limit'], $this->_sqlParts['offset'], false, false, $this);
             }
         }
+
+        // [OV13] moved subquery logic from Doctrine_Query_Abstract::_execute
+        // [OV7] mysql should also use limit subquery in the same format as pgsql
+        if ($this->isLimitSubqueryUsed()/* &&
+                $this->_conn->getAttribute(Doctrine_Core::ATTR_DRIVER_NAME) !== 'mysql'*/) {
+
+            // [OV13]
+            $params = $this->_execParams;
+
+            // [OV10] params duplicates for subquery should be inserted in correct place in params array.
+            // count occurrences of '?' character before subquery (which are not in quotes nor double quotes)
+            $queryBeforeSubquery = substr($query, 0, strpos($query, $this->_limitSubquerySql));
+            // remove quoted or double-quoted parts
+            $queryBeforeSubquery = preg_replace('/\"[^"]*\"|\'[^\']*\'/', '', $queryBeforeSubquery);
+            $count = substr_count($queryBeforeSubquery, '?');
+            if($count > 0) {
+                array_splice($params, $count, 0, $params);
+            } else {
+                // no question marks, we could have named params then. do it "the original" way
+                $params = array_merge((array) $params, (array) $params);
+            }
+
+            // [OV13]
+            $this->_execParams = $params;
+        }
+
+        // [OV13] adjust WHERE IN array param here, after query cache is saved / restored = cache query with single "?"
+        $query = $this->_adjustWhereInSql($query, $this->_execParams);
 
         return $query;
     }
@@ -1281,6 +1306,8 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
         $map = $this->getRootDeclaration();
         $table = $map['table'];
         $rootAlias = $this->getRootAlias();
+        // [OV13] reset flag
+		$this->_isLimitSubqueryUsed = false;
 
         if ( ! empty($this->_sqlParts['limit']) && $this->_needsSubquery &&
                 $table->getAttribute(Doctrine_Core::ATTR_QUERY_LIMIT) == Doctrine_Core::LIMIT_RECORDS) {
@@ -2164,9 +2191,10 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
      * This method is used in Doctrine_Query::count() for returning an integer
      * for the number of records which will be returned when executed.
      *
+	 * @param array $params params passed by reference [OV13]
      * @return string $q
      */
-    public function getCountSqlQuery()
+    public function getCountSqlQuery(array &$params = array())
     {
         // triggers dql parsing/processing
         $this->getSqlQuery(array(), false); // this is ugly
@@ -2234,6 +2262,11 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
                 . $this->_conn->quoteIdentifier('dctrn_count_query');
         }
 
+        // [OV13]
+        $params = $this->getCountQueryParams($params);
+        $params = $this->_conn->convertBooleans($params);
+        $q = $this->_adjustWhereInSql($q, $params);
+
         return $q;
     }
 
@@ -2259,9 +2292,10 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
      */
     public function count($params = array())
     {
-        $q = $this->getCountSqlQuery();
-        $params = $this->getCountQueryParams($params);
-        $params = $this->_conn->convertBooleans($params);
+        $q = $this->getCountSqlQuery($params);
+        // [OV13] moved inside getCountSqlQuery
+        //$params = $this->getCountQueryParams($params);
+        //$params = $this->_conn->convertBooleans($params);
 
         if ($this->_resultCache) {
             $conn = $this->getConnection();

@@ -46,6 +46,7 @@ class Doctrine_Ticket_OV13_TestCase extends Doctrine_UnitTestCase
 		$this->assertEqual($q->getDql(), ' FROM User WHERE name IN ? AND email_id IN ? AND loginname IN ?');
 		$this->assertEqual($q->getSqlQuery(), 'SELECT e.id AS e__id, e.name AS e__name, e.loginname AS e__loginname, e.password AS e__password, e.type AS e__type, e.created AS e__created, e.updated AS e__updated, e.email_id AS e__email_id FROM entity e WHERE (e.name IN (?, ?) AND e.email_id IN (?, ?) AND e.loginname IN (NULL) AND (e.type = 0))');
 		$this->assertEqual($q->getInternalParams(), array('test', 'test2', 2, 3));
+		$this->assertEqual($q->getCountSqlQuery(), 'SELECT COUNT(*) AS num_results FROM entity e WHERE e.name IN (?, ?) AND e.email_id IN (?, ?) AND e.loginname IN (NULL) AND (e.type = 0)');
     }
 }
 

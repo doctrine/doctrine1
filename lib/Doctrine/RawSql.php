@@ -346,6 +346,10 @@ class Doctrine_RawSql extends Doctrine_Query_Abstract
     {
         $sql = $this->getCountSqlQuery();
         $params = $this->getCountQueryParams($params);
+
+        // [OV13] instead of calling it in getCountQueryParams
+        $this->fixArrayParameterValues($params);
+
         $results = $this->getConnection()->fetchAll($sql, $params);
 
         if (count($results) > 1) {

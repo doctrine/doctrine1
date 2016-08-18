@@ -590,12 +590,14 @@ abstract class Doctrine_Query_Abstract
 
         $params = array_merge($this->_params['join'], $this->_params['where'], $this->_params['having'], $this->_params['exec']);
 
-        $this->fixArrayParameterValues($params);
+        // [OV13]
+        //$this->fixArrayParameterValues($params);
 
-        return $this->_execParams;
+        //return $this->_execParams;
+        return $params;
     }
 
-    // [OV13]
+    // [OV13] moved logic from Doctrine_Query::adjustProcessedParam
     /**
      * Adjust the processed param index for "foo.bar IN ?" support
      *
@@ -1059,23 +1061,24 @@ abstract class Doctrine_Query_Abstract
         // Get prepared SQL params for execution
         $params = $this->getInternalParams();
 
+        // [OV13] moved limit subquery logic to getSqlQuery method
         // [OV7] mysql should also use limit subquery in the same format as pgsql
-        if ($this->isLimitSubqueryUsed()/* &&
-                $this->_conn->getAttribute(Doctrine_Core::ATTR_DRIVER_NAME) !== 'mysql'*/) {
+        //if ($this->isLimitSubqueryUsed()/* &&
+        //      $this->_conn->getAttribute(Doctrine_Core::ATTR_DRIVER_NAME) !== 'mysql'*/) {
 
             // [OV10] params duplicates for subquery should be inserted in correct place in params array.
-            // count occurrences of '?' character before subquery (which are not in quotes nor double quotes)
-            $queryBeforeSubquery = substr($query, 0, strpos($query, $this->_limitSubquerySql));
+        //  // count occurrences of '?' character before subquery (which are not in quotes nor double quotes)
+        //  $queryBeforeSubquery = substr($query, 0, strpos($query, $this->_limitSubquerySql));
             // remove quoted or double-quoted parts
-            $queryBeforeSubquery = preg_replace('/\"[^"]*\"|\'[^\']*\'/', '', $queryBeforeSubquery);
-            $count = substr_count($queryBeforeSubquery, '?');
-            if($count > 0) {
-                array_splice($params, $count, 0, $params);
-            } else {
-                // no question marks, we could have named params then. do it "the original" way
-                $params = array_merge((array) $params, (array) $params);
-            }
-        }
+        //  $queryBeforeSubquery = preg_replace('/\"[^"]*\"|\'[^\']*\'/', '', $queryBeforeSubquery);
+        //  $count = substr_count($queryBeforeSubquery, '?');
+        //  if($count > 0) {
+        //      array_splice($params, $count, 0, $params);
+        //  } else {
+        //      // no question marks, we could have named params then. do it "the original" way
+        //      $params = array_merge((array) $params, (array) $params);
+        //  }
+        //}
 
         if ($this->_type !== self::SELECT) {
             return $this->_conn->exec($query, $params);
@@ -1536,7 +1539,7 @@ abstract class Doctrine_Query_Abstract
         }*/
 
         // [OV13] change the way DQL is generated for array params in WHERE IN clause - keep single "?" and process it only after query cache is saved/restored
-         $mixed = false;
+        $mixed = false;
         $a = array();
         foreach ($params as $k => $value) {
             if ($value instanceof Doctrine_Expression) {
@@ -1567,7 +1570,7 @@ abstract class Doctrine_Query_Abstract
      * @param array $params reference to params array
      * @return mixed
      */
-    protected function _adjustWhereInSql($sql, &$params = null)
+    protected function _adjustWhereInSql($sql, array &$params = array())
     {
         $arrParams = array();
         $maxArrParam = null;

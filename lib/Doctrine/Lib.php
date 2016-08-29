@@ -440,12 +440,12 @@ class Doctrine_Lib
                 // find closing quote
                 do {
                     $next = strpos(substr($sql, $i + 1), $char);
-                    if($next) {
+                    if($next !== false) {
                         $next += $i + 1; // add current offset
-                    }
-                    if($sql[$next - 1] === '\\') { // escaped quote, find next one
-                        $i = $next;
-                        $next = -1;
+                        if($next > 0 && $sql[$next - 1] === '\\') { // escaped quote, find next one
+                            $i = $next;
+                            $next = -1;
+                        }
                     }
                 } while ($next === -1);
 

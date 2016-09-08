@@ -1561,7 +1561,7 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
         $subquery .= $this->_conn->quoteIdentifier($primaryKey);
 
         // pgsql & oracle need the order by fields to be preserved in select clause
-        // [OV] added mysql since it needs it since 5.7
+        // [OV14] added mysql since it needs it since 5.7
         if ($driverName == 'mysql' || $driverName == 'pgsql' || $driverName == 'oracle' || $driverName == 'oci' || $driverName == 'mssql' || $driverName == 'odbc') {
             foreach ($this->_sqlParts['orderby'] as $part) {
                 // Remove identifier quoting if it exists
@@ -1580,6 +1580,11 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
                         if (strpos($part, '(') !== false) {
                             continue;
                         }
+
+                        // [OV14] add aliases to selected columns to avoid duplicate column error
+                        $aliasSql = str_replace(array('`', '"', '[', ']'), '', $partOriginal); // de-quote first
+                        $aliasSql = $this->_conn->quoteIdentifier(str_replace('.', '__', $aliasSql));
+                        $partOriginal .= ' AS ' . $aliasSql;
 
                         // don't add primarykey column (its already in the select clause)
                         if ($part !== $primaryKey) {

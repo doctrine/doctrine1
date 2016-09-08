@@ -1370,7 +1370,7 @@ abstract class Doctrine_Record extends Doctrine_Record_Abstract implements Count
     public function getMutators()
     {
         $componentName = $this->_table->getComponentName();
-        return self::$_customMutators[$componentName];
+        return isset(self::$_customMutators[$componentName]) ? self::$_customMutators[$componentName] : array();
     }
 
     /**

@@ -158,7 +158,9 @@ class Doctrine_Query_Driver_TestCase extends Doctrine_UnitTestCase
                             . "SELECT a.*, ROWNUM AS doctrine_rownum "
                                   . "FROM ( "
                                       . "SELECT doctrine_subquery_alias.id FROM ("
-                                          . "SELECT e2.id, p2.id "
+                                          //. "SELECT e2.id, p2.id "
+                                          // [OV13] modified - added alias
+                                          . "SELECT e2.id, p2.id AS p__id "
                                           . "FROM entity e2 "
                                           . "INNER JOIN phonenumber p2 ON e2.id = p2.entity_id "
                                           . "WHERE (e2.type = 0) GROUP BY e2.name ORDER BY p2.id"

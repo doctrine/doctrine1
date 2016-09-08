@@ -46,7 +46,7 @@
  *              This would also largely reduce the currently huge interface of Doctrine_Query(_Abstract)
  *              and better hide all these transformation internals from the public Query API.
  *
- * @comment		Internal comment: The lifecycle of a Query object is the following:
+ * @comment     Internal comment: The lifecycle of a Query object is the following:
  *              After construction the query object is empty. Through using the fluent
  *              query interface the user fills the query object with DQL parts and query parameters.
  *              These get collected in {@link $_dqlParts} and {@link $_params}, respectively.
@@ -1307,7 +1307,7 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
         $table = $map['table'];
         $rootAlias = $this->getRootAlias();
         // [OV13] reset flag
-		$this->_isLimitSubqueryUsed = false;
+        $this->_isLimitSubqueryUsed = false;
 
         if ( ! empty($this->_sqlParts['limit']) && $this->_needsSubquery &&
                 $table->getAttribute(Doctrine_Core::ATTR_QUERY_LIMIT) == Doctrine_Core::LIMIT_RECORDS) {
@@ -1581,13 +1581,12 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
                             continue;
                         }
 
-                        // [OV14] add aliases to selected columns to avoid duplicate column error
-                        $aliasSql = str_replace(array('`', '"', '[', ']'), '', $partOriginal); // de-quote first
-                        $aliasSql = $this->_conn->quoteIdentifier(str_replace('.', '__', $aliasSql));
-                        $partOriginal .= ' AS ' . $aliasSql;
-
                         // don't add primarykey column (its already in the select clause)
                         if ($part !== $primaryKey) {
+                            // [OV14] add aliases to selected columns to avoid duplicate column error
+                            $aliasSql = str_replace('.', '__', $part);
+                            $partOriginal .= ' AS ' . $this->_conn->quoteIdentifier($aliasSql);
+
                             $subquery .= ', ' . $partOriginal;
                         }
                     }
@@ -2197,7 +2196,7 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
      * This method is used in Doctrine_Query::count() for returning an integer
      * for the number of records which will be returned when executed.
      *
-	 * @param array $params params passed by reference [OV13]
+     * @param array $params params passed by reference [OV13]
      * @return string $q
      */
     public function getCountSqlQuery(array &$params = array())

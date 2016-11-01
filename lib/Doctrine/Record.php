@@ -78,14 +78,14 @@ abstract class Doctrine_Record extends Doctrine_Record_Abstract implements Count
      */
     const STATE_LOCKED     = 6;
 
- 	/**
- 	 * TLOCKED STATE
- 	 * a Doctrine_Record is temporarily locked (and transient) during deletes and saves
- 	 *
- 	 * This state is used internally to ensure that circular deletes
- 	 * and saves will not cause infinite loops
- 	 */
- 	const STATE_TLOCKED     = 7;
+     /**
+      * TLOCKED STATE
+      * a Doctrine_Record is temporarily locked (and transient) during deletes and saves
+      *
+      * This state is used internally to ensure that circular deletes
+      * and saves will not cause infinite loops
+      */
+     const STATE_TLOCKED     = 7;
 
 
     /**
@@ -815,14 +815,14 @@ abstract class Doctrine_Record extends Doctrine_Record_Abstract implements Count
         }
     }
 
-	/**
-	 * Get array of vars for serialization of the record
-	 * override this method and modify vars array when necessary
-	 *
-	 * @return array
-	 */
-	public function getSerializeVars()
-	{
+    /**
+     * Get array of vars for serialization of the record
+     * override this method and modify vars array when necessary
+     *
+     * @return array
+     */
+    public function getSerializeVars()
+    {
         $vars = get_object_vars($this);
 
         if ( ! $this->serializeReferences()) {
@@ -847,10 +847,10 @@ abstract class Doctrine_Record extends Doctrine_Record_Abstract implements Count
                 switch ($this->_table->getTypeOf($k)) {
                     case 'array':
                     case 'object':
-						if(is_scalar($vars['_data'][$k]))
-						{
-							$vars['_data'][$k] = serialize($vars['_data'][$k]);
-						}
+                        if(is_scalar($vars['_data'][$k]))
+                        {
+                            $vars['_data'][$k] = serialize($vars['_data'][$k]);
+                        }
                         break;
                     case 'gzip':
                         $vars['_data'][$k] = gzcompress($vars['_data'][$k]);
@@ -876,8 +876,8 @@ abstract class Doctrine_Record extends Doctrine_Record_Abstract implements Count
         unset($vars['_locator']);
         unset($vars['_resources']);
 
-		return $vars;
-	}
+        return $vars;
+    }
 
     /**
      * serialize
@@ -892,7 +892,7 @@ abstract class Doctrine_Record extends Doctrine_Record_Abstract implements Count
         $this->preSerialize($event);
         $this->getTable()->getRecordListener()->preSerialize($event);
 
-		$vars = $this->getSerializeVars();
+        $vars = $this->getSerializeVars();
         $str = serialize($vars);
 
         $this->postSerialize($event);
@@ -930,10 +930,10 @@ abstract class Doctrine_Record extends Doctrine_Record_Abstract implements Count
             switch ($this->_table->getTypeOf($k)) {
                 case 'array':
                 case 'object':
-					if(is_string($this->_data[$k]) && !empty($this->_data[$k]))
-					{
-						$this->_data[$k] = unserialize($this->_data[$k]);
-					}
+                    if(is_string($this->_data[$k]) && !empty($this->_data[$k]))
+                    {
+                        $this->_data[$k] = unserialize($this->_data[$k]);
+                    }
                     break;
                 case 'gzip':
                     $this->_data[$k] = gzuncompress($this->_data[$k]);

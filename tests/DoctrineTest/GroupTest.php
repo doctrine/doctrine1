@@ -53,6 +53,7 @@ class GroupTest extends UnitTestCase
     public function run(DoctrineTest_Reporter $reporter = null, $filter = null)
     {
         set_time_limit(900);
+        ini_set('memory_limit', '256M');
 
         $this->init();
 

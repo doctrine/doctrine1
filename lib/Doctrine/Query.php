@@ -489,7 +489,20 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
             // a subquery of another query object or we're using a child of the Object Graph
             // hydrator
             if ( ! $this->_isSubquery && is_subclass_of($driverClassName, 'Doctrine_Hydrator_Graph')) {
-                $fields = array_unique(array_merge((array) $table->getIdentifier(), $fields));
+                // [OV15] do not auto-add primary key fields when group by is used (on other columns)
+                // (conform with mysql 5.7 default settings - all non-aggregated columns must be also in group by clause)
+                $identifier = array();
+                $groupBy = implode(', ', $this->_sqlParts['groupby']);
+                foreach((array)$table->getIdentifier() as $idColumn) {
+                    if(empty($groupBy) || preg_match('/(?:^|\s)'.preg_quote($tableAlias . '.' . $idColumn) .'(?:,|\s|$)/', $groupBy)) {
+                        // add primary column only if group by is not used or if it is contained in group by clause
+                        $identifier[] = $idColumn;
+                    }
+                }
+
+                if($identifier) {
+                    $fields = array_unique(array_merge($identifier, $fields));
+                }
             }
         }
 

@@ -1,5 +1,8 @@
 <?php
-class Error extends Doctrine_Record {
+
+namespace Doctrine;
+
+class Error extends \Doctrine_Record {
     public function setUp() {
         $this->hasMany('Description', array('local'   => 'file_md5',
                                             'foreign' => 'file_md5'));
@@ -10,4 +13,3 @@ class Error extends Doctrine_Record {
         $this->hasColumn('file_md5', 'string',32, 'primary');
     }
 }
-

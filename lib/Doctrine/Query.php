@@ -1395,6 +1395,33 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
             }
         }
 
+
+        // [OV1] moved this block before limit subquery - for easier checks in subquery
+        // Fix the orderbys so we only have one orderby per value
+        // [OV1] modified to convert also multiline orderby definitions + do not split by commas inside parentheses
+        $def = array();
+        foreach ($this->_sqlParts['orderby'] as $k => $orderBy) {
+            if(false !== strpos($orderBy, '(')) {
+                // https://regex101.com/r/yW4aZ3/277
+                // http://stackoverflow.com/questions/24534782/how-do-skip-or-f-work-on-regex
+                // split by commas, which are not in any (nested) parentheses
+                $e = preg_split('/[^(),]*(\((?:[^()]|(?1))*\))[^(),]*(*SKIP)(*F)|,/', $orderBy);
+            } else {
+                $e = explode(',', $orderBy);
+            }
+            foreach ($e as $v) {
+                $def[] = trim($v);
+            }
+        }
+        $this->_sqlParts['orderby'] = $def;
+        // end modified
+
+        // [OV1] split adding default orderby to add it separately for root alias before limit subquery and relations after
+        // Only do this for SELECT queries
+        if ($this->_type === self::SELECT) {
+            $this->_addDefaultOrderBy($rootAlias);
+        }
+
         $modifyLimit = true;
         $limitSubquerySql = '';
 
@@ -1451,79 +1478,13 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
             //   .  (($limitSubquerySql == '' && count($this->_sqlParts['where']) == 1) ? substr($where, 1, -1) : $where);
         }
 
-        // Fix the orderbys so we only have one orderby per value
-        foreach ($this->_sqlParts['orderby'] as $k => $orderBy) {
-            $e = explode(', ', $orderBy);
-            unset($this->_sqlParts['orderby'][$k]);
-            foreach ($e as $v) {
-                $this->_sqlParts['orderby'][] = $v;
-            }
-        }
 
-        // Add the default orderBy statements defined in the relationships and table classes
+        // [OV1] Add default orderBy for relationships
         // Only do this for SELECT queries
         if ($this->_type === self::SELECT) {
-            foreach ($this->_queryComponents as $alias => $map) {
-                $sqlAlias = $this->getSqlTableAlias($alias);
-
-                // added by mh
-                // fix for DC-815 (Model's default sorting breaks subqueries)
-                if (!in_array($sqlAlias, $this->_fromAliases)) {
-                    // this component is not from this query scope
-                    // e.g. this is subquery and alias is from outer query or vice versa
-                    continue;
-                }
-
-                if (isset($map['relation'])) {
-                    if (isset($map['ref'])) {
-                        // fix for DC-651 already applied (Doctrine_Record::option('orderBy', ...) of join's right side being applied to refTable in m2m relationship)
-                        // modified by mh [WARNING BC BREAK] for ordering m2m relations by columns in refClass use refOrderBy!
-                        // fix for OV1
-                        if(!empty($map['relation']['refOrderBy'])) {
-                            $orderBy = $map['relation']['refTable']->processOrderBy($sqlAlias, $map['relation']['refOrderBy'], true);
-                            if ($orderBy == $map['relation']['refOrderBy']) {
-                                $orderBy = null;
-                            }
-                        } else {
-                            $orderBy = $map['relation']['refTable']->getOrderByStatement($sqlAlias, true);
-                        }
-                    } else {
-                        $orderBy = $map['relation']->getOrderByStatement($sqlAlias, true);
-                        if ($orderBy == $map['relation']['orderBy']) {
-                            $orderBy = null;
-                        }
-                    }
-                } else {
-                    $orderBy = $map['table']->getOrderByStatement($sqlAlias, true);
-                }
-
-                if ($orderBy) {
-                    $e = explode(',', $orderBy);
-                    $e = array_map('trim', $e);
-                    foreach ($e as $v) {
-                        // added by mh - handle quoteIdentifier
-                        $e2 = array_map('trim', explode(' ', $v));
-                        $v = $this->_conn->quoteIdentifier($e2[0]);
-                        if (isset($e2[1])) { // asc or desc
-                            $v .= ' ' . $e2[1];
-                        }
-                        // end added
-                        if ( ! in_array($v, $this->_sqlParts['orderby'])) {
-                            // added by mh to include check for non-specified "ASC" order
-                            if(stripos('ASC', $v) !== false) {
-                                if(in_array(preg_replace('/\s+ASC/i', $v), $this->_sqlParts['orderby'])) {
-                                    continue;
-                                }
-                            } else {
-                                if(in_array($v . ' ASC', $this->_sqlParts['orderby'])) {
-                                    continue;
-                                }
-                            }
-                            // end added
-                            $this->_sqlParts['orderby'][] = $v;
-                        }
-                    }
-                }
+            foreach (array_keys($this->_queryComponents) as $alias) {
+                if($alias == $rootAlias) continue;
+                $this->_addDefaultOrderBy($alias);
             }
         }
 
@@ -1545,6 +1506,80 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
         $this->clear();
 
         return $q;
+    }
+
+    /**
+     * Add default orderBy statements defined in the relationships and table classes
+     *
+     * @param string $componentAlias
+     */
+    // [OV1] refactored into separate method
+    protected function _addDefaultOrderBy($componentAlias)
+    {
+        $sqlAlias = $this->getSqlTableAlias($componentAlias);
+
+        // added by mh
+        // fix for DC-815 (Model's default sorting breaks subqueries)
+        if (!in_array($sqlAlias, $this->_fromAliases)) {
+            // this component is not from this query scope
+            // e.g. this is subquery and alias is from outer query or vice versa
+            return;
+        }
+
+        $map = $this->_queryComponents[$componentAlias];
+        if (isset($map['relation'])) {
+            if (isset($map['ref'])) {
+                // fix for DC-651 already applied (Doctrine_Record::option('orderBy', ...) of join's right side being applied to refTable in m2m relationship)
+                // modified by mh [WARNING BC BREAK] for ordering m2m relations by columns in refClass use refOrderBy!
+                // fix for OV1
+                if(!empty($map['relation']['refOrderBy'])) {
+                    $orderBy = $map['relation']['refTable']->processOrderBy($sqlAlias, $map['relation']['refOrderBy'], true);
+                    if ($orderBy == $map['relation']['refOrderBy']) {
+                        $orderBy = null;
+                    }
+                } else {
+                    $orderBy = $map['relation']['refTable']->getOrderByStatement($sqlAlias, true);
+                }
+            } else {
+                $orderBy = $map['relation']->getOrderByStatement($sqlAlias, true);
+                if ($orderBy == $map['relation']['orderBy']) {
+                    $orderBy = null;
+                }
+            }
+        } else {
+            $orderBy = $map['table']->getOrderByStatement($sqlAlias, true);
+        }
+
+        if ($orderBy) {
+            $e = explode(',', $orderBy);
+            $e = array_map('trim', $e);
+            foreach ($e as $v) {
+                // [OV1]
+                // added by mh - handle quoteIdentifier
+                $e2 = array_map('trim', explode(' ', $v));
+                $v = $this->_conn->quoteIdentifier($e2[0]);
+                if (isset($e2[1])) { // asc or desc
+                    $v .= ' ' . $e2[1];
+                }
+                // end added
+                // modified by mh - include check for non-specified "ASC" order
+                $check = preg_replace('/\s+(ASC|DESC)/i', '', $v);
+                $found = false;
+                foreach($this->_sqlParts['orderby'] as $o) {
+                    if($o == $v || preg_match('/'.preg_quote($check).'\s+(ASC|DESC)/', $o)) {
+                        $found = true;
+                        break;
+                    }
+                }
+                if(!$found) {
+                    $this->_sqlParts['orderby'][] = $v;
+                }
+                //if ( ! in_array($v, $this->_sqlParts['orderby'])) {
+                //    $this->_sqlParts['orderby'][] = $v;
+                //}
+                // end modified
+            }
+        }
     }
 
     /**

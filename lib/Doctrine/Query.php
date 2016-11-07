@@ -1446,7 +1446,8 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
                 // [OV7] mysql should also use limit subquery in the same format as pgsql
                 case 'mysql':
                 case 'pgsql':
-                    $subqueryAlias = $this->_conn->quoteIdentifier('doctrine_subquery_alias');
+                    // [OV14] changed alias - added _wrap_ to avoid conflicts with limit subquery ordered by joined column
+                    $subqueryAlias = $this->_conn->quoteIdentifier('doctrine_subquery_wrap_alias');
 
                     // pgsql needs special nested LIMIT subquery
                     $subquery = 'SELECT ' . $subqueryAlias . '.' . $this->_conn->quoteIdentifier($idColumnName)
@@ -1606,8 +1607,11 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
 
         $driverName = $this->_conn->getAttribute(Doctrine_Core::ATTR_DRIVER_NAME);
 
+        // [OV14] distinct with join and order by on joined column is not determinate, it must be wrapped with another subquery (and not only in oracle)
+        $isOrderedByJoinedColumn = $this->_isOrderedByJoinedColumn();
         // initialize the base of the subquery
-        if (($driverName == 'oracle' || $driverName == 'oci') && $this->_isOrderedByJoinedColumn()) {
+        //if (($driverName == 'oracle' || $driverName == 'oci') && $this->_isOrderedByJoinedColumn()) {
+        if ($isOrderedByJoinedColumn) {
             $subquery = 'SELECT ';
         } else {
             $subquery = 'SELECT DISTINCT ';
@@ -1615,28 +1619,35 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
         $subquery .= $this->_conn->quoteIdentifier($primaryKey);
 
         // pgsql & oracle need the order by fields to be preserved in select clause
-        // [OV14] added mysql since it needs it since 5.7
-        if ($driverName == 'mysql' || $driverName == 'pgsql' || $driverName == 'oracle' || $driverName == 'oci' || $driverName == 'mssql' || $driverName == 'odbc') {
-            foreach ($this->_sqlParts['orderby'] as $part) {
-                // Remove identifier quoting if it exists
-                $e = $this->_tokenizer->bracketExplode($part, ' ');
-                foreach ($e as $f) {
-                    if ($f == 0 || $f % 2 == 0) {
-                        $partOriginal = str_replace(',', '', trim($f));
-                        $callback = create_function('$e', 'return trim($e, \'[]`"\');');
-                        $part = trim(implode('.', array_map($callback, explode('.', $partOriginal))));
+        // [OV14] added mysql since it needs it since 5.7 (with ONLY_FULL_GROUP_BY enabled by default in sql-mode)
+        if (($driverName == 'mysql' && !$isOrderedByJoinedColumn) || $driverName == 'pgsql' || $driverName == 'oracle' || $driverName == 'oci' || $driverName == 'mssql' || $driverName == 'odbc') {
+            // [OV14] remember added columns to avoid duplicates + little refactor for optimization
+            // Remove identifier quoting if it exists
+            $callback = create_function('$e', 'return trim($e, \'[]`"\');');
+            $added = array();
 
-                        if (strpos($part, '.') === false) {
+            foreach ($this->_sqlParts['orderby'] as $part) {
+                $e = $this->_tokenizer->bracketExplode($part, ' ');
+                foreach ($e as $i => $f) { // modified, added $i - before it was checking $f...
+                    if ($i == 0 || $i % 2 == 0) { // modified, added $i - before it was checking $f...
+                    // if ($f == 0 || $f % 2 == 0) {
+                        if (strpos($f, '.') === false) {
                             continue;
                         }
 
                         // don't add functions
-                        if (strpos($part, '(') !== false) {
+                        if (strpos($f, '(') !== false) {
                             continue;
                         }
 
+                        $partOriginal = str_replace(',', '', trim($f));
+                        $part = trim(implode('.', array_map($callback, explode('.', $partOriginal))));
+
                         // don't add primarykey column (its already in the select clause)
-                        if ($part !== $primaryKey) {
+                        // [OV14] watch out for duplicate column names (e.g. ORDER BY col IS NULL, col DESC)
+                        if ($part !== $primaryKey && !isset($added[$partOriginal])) {
+                            $added[$partOriginal] = true;
+
                             // [OV14] add aliases to selected columns to avoid duplicate column error
                             $aliasSql = str_replace('.', '__', $part);
                             $partOriginal .= ' AS ' . $this->_conn->quoteIdentifier($aliasSql);
@@ -1646,6 +1657,8 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
                     }
                 }
             }
+
+            unset($added);
         }
 
         $orderby = $this->_sqlParts['orderby'];
@@ -1700,17 +1713,24 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
         $subquery .= ( ! empty($having))?  ' HAVING '   . implode(' AND ', $having) : '';
         $subquery .= ( ! empty($orderby))? ' ORDER BY ' . implode(', ', $orderby)  : '';
 
-        if (($driverName == 'oracle' || $driverName == 'oci') && $this->_isOrderedByJoinedColumn()) {
+        // [OV14] changed the condition, other databases also need it when query is ordered by joined column
+        // if (($driverName == 'oracle' || $driverName == 'oci') && $this->_isOrderedByJoinedColumn()) {
+        if ($isOrderedByJoinedColumn) {
             // When using "ORDER BY x.foo" where x.foo is a column of a joined table,
             // we may get duplicate primary keys because all columns in ORDER BY must appear
             // in the SELECT list when using DISTINCT. Hence we need to filter out the
             // primary keys with an additional DISTINCT subquery.
             // #1038
             $quotedIdentifierColumnName = $this->_conn->quoteIdentifier($table->getColumnName($table->getIdentifier()));
-            $subquery = 'SELECT doctrine_subquery_alias.' . $quotedIdentifierColumnName
-                    . ' FROM (' . $subquery . ') doctrine_subquery_alias'
-                    . ' GROUP BY doctrine_subquery_alias.' . $quotedIdentifierColumnName
-                    . ' ORDER BY MIN(ROWNUM)';
+            if($driverName == 'oracle' || $driverName == 'oci') {
+                $subquery = 'SELECT doctrine_subquery_alias.' . $quotedIdentifierColumnName
+                        . ' FROM (' . $subquery . ') doctrine_subquery_alias'
+                        . ' GROUP BY doctrine_subquery_alias.' . $quotedIdentifierColumnName
+                        . ' ORDER BY MIN(ROWNUM)';
+            } else {
+                $subquery = 'SELECT DISTINCT doctrine_subquery_alias.' . $quotedIdentifierColumnName
+                        . ' FROM (' . $subquery . ') doctrine_subquery_alias';
+            }
         }
 
         // [OV9] cache without limit and offset
@@ -1805,6 +1825,8 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
         }
         $componentAlias = key($this->_queryComponents);
         $mainTableAlias = $this->getSqlTableAlias($componentAlias);
+        // [OV14] Remove identifier quoting if it exists
+        $callback = create_function('$e', 'return trim($e, \'[]`"\');');
         foreach ($this->_sqlParts['orderby'] as $part) {
             $part = trim($part);
             $e = $this->_tokenizer->bracketExplode($part, ' ');
@@ -1813,6 +1835,8 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
                 continue;
             }
             list($tableAlias, $columnName) = explode('.', $part);
+            // [OV14] Remove identifier quoting if it exists
+            $tableAlias = call_user_func($callback, $tableAlias);
             if ($tableAlias != $mainTableAlias) {
                 return true;
             }

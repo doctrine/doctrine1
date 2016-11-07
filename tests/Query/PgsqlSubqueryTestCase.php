@@ -50,9 +50,12 @@ class Doctrine_Query_PgsqlSubquery_TestCase extends Doctrine_UnitTestCase
         $q->execute();
 
         $this->assertEqual($this->dbh->pop(), 'SELECT e.id AS e__id, e.name AS e__name, COUNT(DISTINCT a.id) AS a__0 FROM entity e LEFT JOIN album a ON e.id = a.user_id WHERE e.id IN '
-                                             . '(SELECT doctrine_subquery_alias.id FROM '
+                                             //. '(SELECT doctrine_subquery_alias.id FROM '
+                                             // [OV14] changed alias
+                                             . '(SELECT doctrine_subquery_wrap_alias.id FROM '
                                              . '(SELECT DISTINCT e2.id, COUNT(DISTINCT a2.id) AS a2__0 FROM entity e2 LEFT JOIN album a2 ON e2.id = a2.user_id WHERE (e2.type = 0) GROUP BY e2.id ORDER BY a2__0 LIMIT 5) '
-                                             . 'AS doctrine_subquery_alias) AND (e.type = 0) GROUP BY e.id ORDER BY a__0');
+                                             //. 'AS doctrine_subquery_alias) AND (e.type = 0) GROUP BY e.id ORDER BY a__0');
+                                             . 'AS doctrine_subquery_wrap_alias) AND (e.type = 0) GROUP BY e.id ORDER BY a__0');
 
     }
 
@@ -68,8 +71,9 @@ class Doctrine_Query_PgsqlSubquery_TestCase extends Doctrine_UnitTestCase
         $q->execute();
 
 		// [OV13] modified - added alias in limit subquery
+		// [OV14] changed alias
         //$this->assertEqual($this->dbh->pop(), 'SELECT e.id AS e__id, e.name AS e__name, COUNT(DISTINCT a.id) AS a__0 FROM entity e LEFT JOIN album a ON e.id = a.user_id WHERE e.id IN (SELECT doctrine_subquery_alias.id FROM (SELECT DISTINCT e2.id, e2.name, COUNT(DISTINCT a2.id) AS a2__0 FROM entity e2 LEFT JOIN album a2 ON e2.id = a2.user_id WHERE (e2.type = 0) GROUP BY e2.id ORDER BY a2__0, e2.name LIMIT 5) AS doctrine_subquery_alias) AND (e.type = 0) GROUP BY e.id ORDER BY a__0, e.name');
-        $this->assertEqual($this->dbh->pop(), 'SELECT e.id AS e__id, e.name AS e__name, COUNT(DISTINCT a.id) AS a__0 FROM entity e LEFT JOIN album a ON e.id = a.user_id WHERE e.id IN (SELECT doctrine_subquery_alias.id FROM (SELECT DISTINCT e2.id, e2.name AS e2__name, COUNT(DISTINCT a2.id) AS a2__0 FROM entity e2 LEFT JOIN album a2 ON e2.id = a2.user_id WHERE (e2.type = 0) GROUP BY e2.id ORDER BY a2__0, e2.name LIMIT 5) AS doctrine_subquery_alias) AND (e.type = 0) GROUP BY e.id ORDER BY a__0, e.name');
+        $this->assertEqual($this->dbh->pop(), 'SELECT e.id AS e__id, e.name AS e__name, COUNT(DISTINCT a.id) AS a__0 FROM entity e LEFT JOIN album a ON e.id = a.user_id WHERE e.id IN (SELECT doctrine_subquery_wrap_alias.id FROM (SELECT DISTINCT e2.id, e2.name AS e2__name, COUNT(DISTINCT a2.id) AS a2__0 FROM entity e2 LEFT JOIN album a2 ON e2.id = a2.user_id WHERE (e2.type = 0) GROUP BY e2.id ORDER BY a2__0, e2.name LIMIT 5) AS doctrine_subquery_wrap_alias) AND (e.type = 0) GROUP BY e.id ORDER BY a__0, e.name');
     }
 
 }

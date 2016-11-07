@@ -37,7 +37,7 @@ class Doctrine_Ticket_OV15_TestCase extends Doctrine_UnitTestCase
     public function testTest()
     {
         $q = Doctrine_Query::create()
-            ->select('u.name, COUNT(u.id) count')->from('User u')->groupby('u.name');
+            ->select('u.name, COUNT(u.id) count')->from('User u')->groupBy('u.name');
 
         $this->assertEqual($q->getSqlQuery(), 'SELECT e.name AS e__name, COUNT(e.id) AS e__0 FROM entity e WHERE (e.type = 0) GROUP BY e.name');
     }
@@ -46,7 +46,7 @@ class Doctrine_Ticket_OV15_TestCase extends Doctrine_UnitTestCase
     {
         // id column will be added to select, because it's a primary key and is in group by clause
         $q = Doctrine_Query::create()
-            ->select('u.name, COUNT(u.updated) count')->from('User u')->groupby('u.id, u.name');
+            ->select('u.name, COUNT(u.updated) count')->from('User u')->groupBy('u.id, u.name');
 
         $this->assertEqual($q->getSqlQuery(), 'SELECT e.id AS e__id, e.name AS e__name, COUNT(e.updated) AS e__0 FROM entity e WHERE (e.type = 0) GROUP BY e.id, e.name');
     }

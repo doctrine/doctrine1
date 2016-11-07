@@ -698,7 +698,9 @@ abstract class Doctrine_Query_Abstract
 
         $tableAlias = $this->getSqlTableAlias($componentAlias);
 
-        if ($this->_type !== Doctrine_Query::SELECT) {
+        // [OV16] improved checks for whether table alias should be used
+        //if ($this->_type !== Doctrine_Query::SELECT) {
+        if (!$this->shouldUseTableAlias($componentAlias)) {
             $tableAlias = '';
         } else {
             $tableAlias .= '.';
@@ -2355,5 +2357,33 @@ abstract class Doctrine_Query_Abstract
     public function setDisableLimitSubquery($disableLimitSubquery)
     {
         $this->disableLimitSubquery = $disableLimitSubquery;
+    }
+
+    /**
+     * Should table alias be used for this component alias?
+     *
+     * There are different syntaxes for UPDATE JOIN queries
+     *
+     * @param string $componentAlias
+     * @return bool
+     */
+    // [OV16] improved checks for whether table alias should be used
+    public function shouldUseTableAlias($componentAlias = null)
+    {
+        if($this->_type === self::SELECT) {
+            return true;
+        }
+
+        if($this->_type === self::UPDATE && strtolower($this->_conn->getDriverName()) == 'mysql') {
+            $hasJoins = count($this->_dqlParts['from']) > 1;
+            //if(is_array($componentAlias)) {
+            //    $componentAlias = implode('.', $componentAlias);
+            //}
+            if($hasJoins) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

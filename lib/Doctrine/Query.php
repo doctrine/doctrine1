@@ -749,7 +749,9 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
 
                             $field = array_pop($e);
 
-                            if ($this->getType() === Doctrine_Query::SELECT) {
+                            // [OV16] improved checks for whether table alias should be used
+                            //if ($this->getType() === Doctrine_Query::SELECT) {
+                            if ($this->shouldUseTableAlias($e)) {
                                 $componentAlias = implode('.', $e);
 
                                 if (empty($componentAlias)) {
@@ -818,7 +820,9 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
 
                                     $tableAlias = $this->getSqlTableAlias($componentAlias);
 
-                                    if ($this->getType() === Doctrine_Query::SELECT) {
+                                    // [OV16] improved checks for whether table alias should be used
+                                    //if ($this->getType() === Doctrine_Query::SELECT) {
+                                    if ($this->shouldUseTableAlias($componentAlias)) {
                                         // build sql expression
                                         $term[0] = $this->_conn->quoteIdentifier($tableAlias)
                                                  . '.'
@@ -1055,7 +1059,9 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
             $e = explode(' ', $part);
 
             if ($k === 0) {
-                if ( ! $ignorePending && $this->_type == self::SELECT) {
+                // [OV16] improved checks for whether table alias should be used
+                //if ( ! $ignorePending && $this->_type == self::SELECT) {
+                if ( ! $ignorePending && $this->shouldUseTableAlias()) {
                     // We may still have pending conditions
                     $alias = count($e) > 1
                         ? $this->getComponentAlias($e[1])
@@ -2139,7 +2145,9 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
         // quote table name
         $queryPart = $this->_conn->quoteIdentifier($tableName);
 
-        if ($this->_type === self::SELECT) {
+        // [OV16] improved checks for whether table alias should be used
+        //if ($this->_type === self::SELECT) {
+        if ($this->shouldUseTableAlias()) {
             $queryPart .= ' ' . $this->_conn->quoteIdentifier($tableAlias);
         }
 

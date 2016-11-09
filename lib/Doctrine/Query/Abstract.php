@@ -164,7 +164,8 @@ abstract class Doctrine_Query_Abstract
             'forUpdate' => false,
             'from'      => array(),
             'set'       => array(),
-            'join'      => array(),
+            // [OV17] not used
+            //'join'      => array(),
             'where'     => array(),
             'groupby'   => array(),
             'having'    => array(),
@@ -181,7 +182,8 @@ abstract class Doctrine_Query_Abstract
                             'select'    => array(),
                             'forUpdate' => false,
                             'set'       => array(),
-                            'join'      => array(),
+                            // [OV17] not used
+                            //'join'      => array(),
                             'where'     => array(),
                             'groupby'   => array(),
                             'having'    => array(),
@@ -282,6 +284,20 @@ abstract class Doctrine_Query_Abstract
      * @var bool Boolean variable for whether the limitSubquery method of accessing tables via a many relationship should be used.
      */
     protected $disableLimitSubquery = false;
+
+    // [OV17] dependency map
+    /**
+     * A map of table dependences for various sql parts in this query
+     * @var array
+     */
+    protected $_dependences = array();
+
+    // [OV17] pointer to current sql part to save into dependency map
+    /**
+     * current sql part for adding dependences
+     * @var string
+     */
+    protected $_currentDependencyPart;
 
     /**
      * Constructor.
@@ -1287,6 +1303,8 @@ abstract class Doctrine_Query_Abstract
         $this->_sqlParts = $cached[4];
         $this->_isLimitSubqueryUsed = $cached[5];
         $this->_limitSubquerySql = $cached[6];
+        // [OV17] added dependences to cache
+        $this->_dependences = isset($cached[7]) ? $cached[7] : array();
         $customComponent = $cached[0];
 
         $queryComponents = array();
@@ -1348,6 +1366,7 @@ abstract class Doctrine_Query_Abstract
         }
 
         // [OV8] added rootAlias, sqlParts (without offset or limit), isLimitSubqueryUsed and limitSubquery to cache
+        // [OV17] added dependences to cache
         return serialize(array(
             $customComponent,
             $componentInfo,
@@ -1355,7 +1374,8 @@ abstract class Doctrine_Query_Abstract
             $this->_rootAlias,
             array_merge($this->_sqlParts, array('offset' => false, 'limit' => false)),
             $this->_isLimitSubqueryUsed,
-            $this->_limitSubquerySql
+            $this->_limitSubquerySql,
+            $this->_dependences
         ));
     }
 
@@ -1973,7 +1993,8 @@ abstract class Doctrine_Query_Abstract
                     'forUpdate' => false,
                     'from'      => array(),
                     'set'       => array(),
-                    'join'      => array(),
+                    // [OV17] not used
+                    //'join'      => array(),
                     'where'     => array(),
                     'groupby'   => array(),
                     'having'    => array(),
@@ -2268,6 +2289,9 @@ abstract class Doctrine_Query_Abstract
     {
         $this->removeSqlQueryPart($queryPartName);
 
+        // [OV17] remember table alias dependeces found in this sql part
+        $this->setCurrentDependencyPart($queryPartName);
+
         if (is_array($queryParts) && ! empty($queryParts)) {
             foreach ($queryParts as $queryPart) {
                 $parser = $this->_getParser($queryPartName);
@@ -2281,6 +2305,9 @@ abstract class Doctrine_Query_Abstract
                 }
             }
         }
+
+        // [OV17] clear current sql part for dependences
+        $this->setCurrentDependencyPart(null);
     }
 
     /**
@@ -2385,5 +2412,142 @@ abstract class Doctrine_Query_Abstract
         }
 
         return false;
+    }
+
+    // [OV17]
+    /**
+     * Store table alias dependency for an sql part
+     *
+     * @param string|null $sqlPart if null, then currentDependencyPart will be used
+     * @param string|null $tableAlias null - set a dependency to root table alias
+     * @return $this
+     */
+    public function addDependency($sqlPart = null, $tableAlias = null)
+    {
+        if(null === $tableAlias && !$this->_rootAlias) {
+            if(!$this->_rootAlias) {
+                // sql is not parsed yet, root alias not yet available
+                return $this;
+            }
+            $tableAlias = $this->getSqlTableAlias($this->_rootAlias);
+        }
+
+        if(null === $sqlPart) {
+            $sqlPart = $this->_currentDependencyPart;
+        }
+
+        if(null === $sqlPart) {
+            // can't add a dependency if sqlpart is not set
+            return $this;
+        }
+
+        $this->_dependences[$sqlPart][$tableAlias] = true;
+        return $this;
+    }
+
+    // [OV17]
+    /**
+     * Store multiple table alias dependences for an sql part
+     *
+     * @param string|null $sqlPart if null, then currentDependencyPart will be used
+     * @param array $tableAliases
+     * @return $this
+     */
+    public function addDependences($sqlPart = null, array $tableAliases)
+    {
+        foreach($tableAliases as $tableAlias) {
+            $this->addDependency($sqlPart, $tableAlias);
+        }
+        return $this;
+    }
+
+    // [OV17]
+    /**
+     * Get table alias dependences for an sql part
+     *
+     * @param string|array|null $sqlParts single or multiple parts, or null to get all dependences
+     * @param bool $exceptRoot strip out dependences to root table
+     * @return array (sqlPart => (alias => true)) or just array(alias => true) if only single sqlPart is passed
+     */
+    public function getDependences($sqlParts = null, $exceptRoot = true)
+    {
+        if ( ! $this->_queryComponents) {
+            // parse the query, if not parsed yet
+            $this->getSqlQuery(array(), false);
+        }
+
+        $dependences = $this->_dependences;
+        if(null !== $sqlParts) {
+            $sqlParts = (array)$sqlParts;
+            $dependences = array_intersect_key($dependences, array_flip($sqlParts));
+        }
+
+        if($exceptRoot && $this->_rootAlias) {
+            $rootTableAlias = $this->getSqlTableAlias($this->_rootAlias);
+            foreach($dependences as $sqlPart => &$aliases) {
+                unset($aliases[$rootTableAlias]);
+            }
+        }
+
+        if(null !== $sqlParts) {
+            if(count($sqlParts) > 1) {
+                // set empty arrays for parts which do not have dependences
+                $dependences = array_replace(array_fill_keys($sqlParts, []), $dependences);
+            } else {
+                $dependences = array_shift($dependences);
+            }
+        }
+
+        return $dependences;
+    }
+
+    /**
+     * Get all table alias dependences in the query (except join dependences)
+     * Dependences for all sql parts are merged into one array to get a single list of dependent table aliases
+     *
+     * @param array|null $sqlParts multiple parts, or null to get all dependences
+     * @param bool $exceptRoot strip out dependences to root table
+     * @return array
+     */
+    public function getDependencesMerged($sqlParts = null, $exceptRoot = true)
+    {
+        if($sqlParts && count($sqlParts) < 2) {
+            throw new InvalidArgumentException('sqlParts argument should be either an array with more than 1 element or null');
+        }
+
+        $dependences = $this->getDependences($sqlParts, $exceptRoot);
+        if(count($dependences) > 1) {
+            $dependences = call_user_func_array('array_merge', array_values($dependences));
+        } else {
+            $dependences = array_shift($dependences);
+        }
+
+        return $dependences;
+    }
+
+    // [OV17]
+    /**
+     * Clear table alias dependences for passed part
+     *
+     * @param string $sqlPart
+     * @return $this
+     */
+    public function clearDependences($sqlPart)
+    {
+        unset($this->_dependences[$sqlPart]);
+        return $this;
+    }
+
+    // [OV17]
+    /**
+     * Set current sql part for adding dependences
+     *
+     * @param string $sqlPart
+     * @return $this
+     */
+    public function setCurrentDependencyPart($sqlPart)
+    {
+        $this->_currentDependencyPart = $sqlPart;
+        return $this;
     }
 }

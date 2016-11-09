@@ -42,12 +42,23 @@ class Doctrine_Query_Having extends Doctrine_Query_Condition
     {
         $pos = strpos($func, '(');
 
-        // Check for subqueries
+        // [OV17] refactored
+        if(false !== $pos) {
+            return $this->query->parseFunctionExpression($func);
+        }
+        return $this->_parseAliases($func);
+
+        /*// Check for subqueries
         if ($pos === 0 && substr($func, 1, 6) == 'SELECT') {
             // This code is taken from WHERE.php
             $sub = $this->_tokenizer->bracketTrim($func);
             $q = $this->query->createSubquery()->parseDqlQuery($sub, false);
             $sql = $q->getSqlQuery();
+
+            // [OV17] copy dependences to this query's tables from the subquery
+            $dependences = array_intersect(array_keys($this->query->getTableAliasMap()), $q->getDependences());
+            $this->query->addDependences(null, $dependences);
+
             $q->free();
             return '(' . $sql . ')';
         }
@@ -68,7 +79,7 @@ class Doctrine_Query_Having extends Doctrine_Query_Condition
             return $funcs;
         } else {
             return $this->_parseAliases($func);
-        }
+        }*/
     }
 
     /**
@@ -88,7 +99,12 @@ class Doctrine_Query_Having extends Doctrine_Query_Condition
                 $ref   = implode('.', $a);
                 $map   = $this->query->load($ref, false);
                 $field = $map['table']->getColumnName($field);
-                $value = $this->query->getConnection()->quoteIdentifier($this->query->getSqlTableAlias($ref) . '.' . $field);
+
+                $tableAlias = $this->query->getSqlTableAlias($ref);
+                $value = $this->query->getConnection()->quoteIdentifier($tableAlias . '.' . $field);
+
+                // [OV17] remember sql dependences
+                $this->query->addDependency(null, $tableAlias);
             } else {
                 $field = end($a);
                 if ($this->query->hasSqlAggregateAlias($field)) {

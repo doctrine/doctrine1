@@ -104,10 +104,16 @@ class Doctrine_Query_Groupby extends Doctrine_Query_Part
 
                                 // build sql expression
                                 $term[0] = $conn->quoteIdentifier($tableAlias) . '.' . $conn->quoteIdentifier($field);
+
+                                // [OV17] remember sql dependences
+                                $this->query->addDependency(null, $tableAlias);
                             } else {
                                 // build sql expression
                                 $field = $this->query->getRoot()->getColumnName($field);
                                 $term[0] = $conn->quoteIdentifier($field);
+
+                                // [OV17] remember sql dependences
+                                $this->query->addDependency();
                             }
                         }
                     } else {
@@ -158,6 +164,9 @@ class Doctrine_Query_Groupby extends Doctrine_Query_Part
                                         // build sql expression
                                         $term[0] = $conn->quoteIdentifier($term[0]);
                                     }
+
+                                    // [OV17] remember sql dependences
+                                    $this->query->addDependency(null, $tableAlias);
                                 } else {
                                     $found = false;
                                 }

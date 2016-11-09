@@ -179,10 +179,15 @@ class Doctrine_Query_Where extends Doctrine_Query_Condition
 
         $sub = $this->_tokenizer->bracketTrim(substr($where, $pos));
 
-        $q = $this->query->createSubquery()->parseDqlQuery($sub, false);
-        $sql = $q->getSqlQuery();
-        $q->free();
+        // [OV17] refactored
+        $sql = $this->query->parseSubquery($sub);
 
-        return $operator . ' (' . $sql . ')';
+        return $operator . ' ' . $sql;
+
+        //$q = $this->query->createSubquery()->parseDqlQuery($sub, false);
+        //$sql = $q->getSqlQuery();
+        //$q->free();
+
+        // return $operator . ' (' . $sql . ')';
     }
 }

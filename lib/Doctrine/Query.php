@@ -123,10 +123,11 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
      */
     protected $_aggregateAliasMap      = array();
 
-    /**
+    // [OV17] property not used
+    /*
      * @var array
      */
-    protected $_pendingAggregates = array();
+    // protected $_pendingAggregates = array();
 
     /**
      * @param boolean $needsSubquery
@@ -150,11 +151,12 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
      */
     protected $_fromAliases = array();
 
-    /**
+    // [OV17] property not used
+    /*
      * @var array $pendingSubqueries        SELECT part subqueries, these are called pending subqueries since
      *                                      they cannot be parsed directly (some queries might be correlated)
      */
-    protected $_pendingSubqueries = array();
+    // protected $_pendingSubqueries = array();
 
     /**
      * @var array $_pendingFields           an array of pending fields (fields waiting to be parsed)
@@ -215,8 +217,9 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
     {
         $this->_subqueryAliases = array();
         $this->_aggregateAliasMap = array();
-        $this->_pendingAggregates = array();
-        $this->_pendingSubqueries = array();
+        // [OV17] properties not used
+        //$this->_pendingAggregates = array();
+        //$this->_pendingSubqueries = array();
         $this->_pendingFields = array();
         $this->_neededTables = array();
         $this->_expressionMap = array();
@@ -224,6 +227,9 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
         $this->_needsSubquery = false;
         $this->_isLimitSubqueryUsed = false;
         $this->_limitSubquerySql = null; // [OV8]
+        // [OV17] clear dependency map
+        $this->_dependences = array();
+        $this->_currentDependencyPart = null;
     }
 
     /**
@@ -340,11 +346,11 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
             $this->_expressionMap[$dqlAlias][1] = true;
 
             return $this->_aggregateAliasMap[$dqlAlias];
-        } else if ( ! empty($this->_pendingAggregates)) {
+        } /*else if ( ! empty($this->_pendingAggregates)) { // [OV17] _pendingAggregates are not used
             $this->processPendingAggregates();
 
             return $this->getSqlAggregateAlias($dqlAlias);
-        } else if( ! ($this->_conn->getAttribute(Doctrine_Core::ATTR_PORTABILITY) & Doctrine_Core::PORTABILITY_EXPR)){
+        } */else if( ! ($this->_conn->getAttribute(Doctrine_Core::ATTR_PORTABILITY) & Doctrine_Core::PORTABILITY_EXPR)){
             return $dqlAlias;
         } else {
             throw new Doctrine_Query_Exception('Unknown aggregate alias: ' . $dqlAlias);
@@ -518,6 +524,9 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
                 $sql[] = $this->_conn->quoteIdentifier($parentAlias) . '.' . $this->_conn->quoteIdentifier($columnName)
                        . ' AS '
                        . $this->_conn->quoteIdentifier($tableAlias . '__' . $columnName);
+
+                // [OV17] remember sql dependences
+                $this->addDependency('select', $parentAlias);
             } else {
                 // Fix for http://www.doctrine-project.org/jira/browse/DC-585
                 // Take the field alias if available
@@ -534,6 +543,9 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
         }
 
         $this->_neededTables[] = $tableAlias;
+
+        // [OV17] remember sql dependences
+        $this->addDependency('select', $tableAlias);
 
         return implode(', ', $sql);
     }
@@ -690,6 +702,8 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
                     $this->_pendingFields[$componentAlias][$alias] = $field[3];
                 }
 
+                // [OV17] remember sql dependences
+                $this->addDependency('select', $tableAlias);
             } else {
                 $e = explode('.', $terms[0]);
 
@@ -787,10 +801,16 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
                                 $term[0] = $this->_conn->quoteIdentifier($tableAlias)
                                          . '.'
                                          . $this->_conn->quoteIdentifier($field);
+
+                                // [OV17] remember sql dependences
+                                $this->addDependency(null, $tableAlias);
                             } else {
                                 // build sql expression
                                 $field = $this->getRoot()->getColumnName($field);
                                 $term[0] = $this->_conn->quoteIdentifier($field);
+
+                                // [OV17] remember sql dependences
+                                $this->addDependency();
                             }
                         }
                     } else {
@@ -831,6 +851,9 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
                                         // build sql expression
                                         $term[0] = $this->_conn->quoteIdentifier($term[0]);
                                     }
+
+                                    // [OV17] remember sql dependences
+                                    $this->addDependency(null, $tableAlias);
                                 } else {
                                     $found = false;
                                 }
@@ -891,6 +914,11 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
             // parse subquery
             $q = $this->createSubquery()->parseDqlQuery($trimmed);
             $trimmed = $q->getSqlQuery();
+
+            // [OV17] copy dependences to this query's tables from the subquery
+            $dependences = array_intersect(array_keys($this->getTableAliasMap()), $q->getDependencesMerged());
+            $this->addDependences(null, $dependences);
+
             $q->free();
         } else if (substr($trimmed, 0, 4) == 'SQL:') {
             $trimmed = substr($trimmed, 4);
@@ -911,7 +939,8 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
     }
 
 
-    /**
+    // [OV17] method not used
+    /*
      * processPendingSubqueries
      * processes pending subqueries
      *
@@ -922,7 +951,7 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
      * @todo Better description. i.e. What is a 'pending subquery'? What does 'processed' mean?
      *       (parsed? sql is constructed? some information is gathered?)
      */
-    public function processPendingSubqueries()
+    /*public function processPendingSubqueries()
     {
         foreach ($this->_pendingSubqueries as $value) {
             list($dql, $alias) = $value;
@@ -944,16 +973,17 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
             $this->_queryComponents[$componentAlias]['agg'][] = $alias;
         }
         $this->_pendingSubqueries = array();
-    }
+    }*/
 
-    /**
+    // [OV17] method not used
+    /*
      * processPendingAggregates
      * processes pending aggregate values for given component alias
      *
      * @return void
      * @todo Better description. i.e. What is a 'pending aggregate'? What does 'processed' mean?
      */
-    public function processPendingAggregates()
+    /*public function processPendingAggregates()
     {
         // iterate trhough all aggregates
         foreach ($this->_pendingAggregates as $aggregate) {
@@ -1018,7 +1048,7 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
         }
         // reset the state
         $this->_pendingAggregates = array();
-    }
+    }*/
 
     /**
      * _buildSqlQueryBase
@@ -1066,7 +1096,14 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
                     $alias = count($e) > 1
                         ? $this->getComponentAlias($e[1])
                         : null;
+
+                    // [OV17] set current sql part for dependences
+                    $this->setCurrentDependencyPart('where');
+
                     $where = $this->_processPendingJoinConditions($alias);
+
+                    // [OV17] clear current sql part for dependences
+                    $this->setCurrentDependencyPart(null);
 
                     // apply inheritance to WHERE part
                     if ( ! empty($where)) {
@@ -1116,7 +1153,19 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
                         $part .= ' ON ';
                     }
 
+                    // [OV17] set current sql part for dependences
+                    $this->setCurrentDependencyPart('join');
+
                     $part .= $this->_processPendingJoinConditions($k);
+
+                    // [OV17]
+                    if($dependences = $this->getDependences('join', false)) {
+                        $this->addJoinDependences($k, $dependences);
+                        $this->clearDependences('join');
+                    }
+
+                    // [OV17] clear current sql part for dependences
+                    $this->setCurrentDependencyPart(null);
                 }
 
                 $componentAlias = $this->getComponentAlias($e[3]);
@@ -1280,7 +1329,8 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
         // reset the state
         if ( ! $this->isSubquery()) {
             $this->_queryComponents = array();
-            $this->_pendingAggregates = array();
+            // [OV17] property not used
+            //$this->_pendingAggregates = array();
             $this->_aggregateAliasMap = array();
         }
 
@@ -1393,6 +1443,9 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
             } else {
                 $this->_sqlParts['where'][] = '(' . $string . ')';
             }
+
+            // [OV17] remember sql dependences
+            $this->addDependency('where');
         }
 
 
@@ -1573,6 +1626,13 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
                     }
                 }
                 if(!$found) {
+                    // [OV17] remember sql dependences
+                    if (strpos($e2[0], '.')) {
+                        $tmp = explode('.', $e2[0]);
+                        $tableAlias = $tmp[0];
+                        $this->addDependency('orderby', $tableAlias);
+                    }
+
                     $this->_sqlParts['orderby'][] = $v;
                 }
                 //if ( ! in_array($v, $this->_sqlParts['orderby'])) {
@@ -2028,7 +2088,12 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
                         $this->_subqueryAliases[] = $assocTableName;
                     }
 
-                    $assocPath = $prevPath . '.' . $asf->getComponentName() . ' ' . $componentAlias;
+                    // [OV17] changed the component name under which the association-refClass table will be aliased
+                    // because it will be stored in sqlParts, dependences, pendingJoinConditions
+                    // and with the old way e.g. a SoftDelete behavior, or anything which would add a pendingJoinCondition on the refModel
+                    // would result in an exception, because Doctrine_Query_JoinCondition would fail parsing it (trying to resolve $asf->getComponentName() as a column name)
+                    //$assocPath = $prevPath . '.' . $asf->getComponentName() . ' ' . $componentAlias;
+                    $assocPath = $componentAlias . '.' . $asf->getComponentName();
 
                     $this->_queryComponents[$assocPath] = array(
                         'parent' => $prevPath,
@@ -2061,7 +2126,13 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
 
                     $queryPart .= ')';
 
-                    $this->_sqlParts['from'][] = $queryPart;
+                    // [OV17] store query part under the aliased key, like the other parts
+                    //$this->_sqlParts['from'][] = $queryPart;
+                    $this->_sqlParts['from'][$assocPath] = $queryPart;
+
+                    // [OV17] remember join dependences
+                    $this->addJoinDependency($assocPath, $localAlias);
+
                     // fix for DC-815 (Model's default sorting breaks subqueries)
                     $this->_fromAliases[] = $assocAlias;
 
@@ -2069,9 +2140,17 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
 
                     if ( ! $overrideJoin) {
                         $queryPart .= $this->buildAssociativeRelationSql($relation, $assocAlias, $foreignAlias, $localAlias);
+
+                        // [OV17] remember join dependences
+                        $this->addJoinDependency($componentAlias, $assocAlias);
                     }
                 } else {
                     $queryPart = $this->buildSimpleRelationSql($relation, $foreignAlias, $localAlias, $overrideJoin, $join);
+
+                    // [OV17] remember join dependences
+                    if ( ! $overrideJoin) {
+                        $this->addJoinDependency($componentAlias, $localAlias);
+                    }
                 }
 
                 $queryPart .= $this->buildInheritanceJoinSql($table->getComponentName(), $componentAlias);
@@ -2428,6 +2507,86 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
     {
         $this->parseDqlQuery($query);
         return $this->execute($params, $hydrationMode);
+    }
+
+    // [OV17]
+    /**
+     * Add join dependency to a table alias for query component
+     *
+     * @param string $componentAlias
+     * @param array $tableAlias
+     * @return $this
+     */
+    public function addJoinDependency($componentAlias, $tableAlias)
+    {
+        $this->_queryComponents[$componentAlias]['dependences'][$tableAlias] = true;
+        return $this;
+    }
+
+    // [OV17]
+    /**
+     * Add multiple join dependences to a table alias for query component
+     *
+     * @param string $componentAlias
+     * @param array $tableAliases
+     * @return $this
+     */
+    public function addJoinDependences($componentAlias, array $tableAliases)
+    {
+        foreach($tableAliases as $tableAlias) {
+            $this->addJoinDependency($componentAlias, $tableAlias);
+        }
+        return $this;
+    }
+
+    // [OV17]
+    /**
+     * Get join dependences for a query component
+     *
+     * @param string $componentAlias
+     * @param bool $exceptRoot strip out dependences to root table
+     * @return array
+     */
+    public function getJoinDependences($componentAlias, $exceptRoot = true)
+    {
+        if ( ! $this->_queryComponents) {
+            // parse the query, if not parsed yet
+            $this->getSqlQuery(array(), false);
+        }
+
+        $dependences = !empty($this->_queryComponents[$componentAlias]['dependences']) ? $this->_queryComponents[$componentAlias]['dependences'] : array();
+        if($exceptRoot && $this->_rootAlias) {
+            $rootTableAlias = $this->getSqlTableAlias($this->_rootAlias);
+            unset($dependences[$rootTableAlias]);
+        }
+        return $dependences;
+    }
+
+    /**
+     * Get join dependences for all components used in the query
+     *
+     * @param bool $exceptRoot strip out dependences to root table
+     * @return array
+     */
+    public function getAllJoinDependences($exceptRoot = true)
+    {
+        if ( ! $this->_queryComponents) {
+            // parse the query, if not parsed yet
+            $this->getSqlQuery(array(), false);
+        }
+
+        $data = array();
+        foreach($this->_queryComponents as $alias => $map) {
+            if(isset($this->_parentQueryComponents[$alias])) {
+                // this must be a subquery, do not return dependences for components from parent query
+                continue;
+            }
+            if($dependences = $this->getJoinDependences($alias, $exceptRoot)) {
+                $data[$alias] = $dependences;
+            }
+        }
+
+        return $data;
     }
 
     /**

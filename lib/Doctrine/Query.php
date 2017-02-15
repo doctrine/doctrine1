@@ -886,7 +886,11 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
             return $this->parseSubquery($expr);
         }
 
-        $argStr = substr($expr, ($pos + 1), -1);
+        // [OV20] let the parser be forgivable if a closing bracket is omitted
+        $argStr = substr($expr, ($pos + 1));
+        if(substr($argStr, -1) == ')') {
+            $argStr = substr($argStr, 0, -1);
+        }
         $args   = array();
         // parse args
 
@@ -2373,6 +2377,9 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
 
         // Build the query base
         $q = 'SELECT COUNT(*) AS ' . $this->_conn->quoteIdentifier('num_results') . ' FROM ';
+
+        // [OV18] optimize count query - strip out unnecesary joins
+        $dependences = $this->getDependencesMerged(array('where', 'groupby', 'having'));
 
         // Build the from clause
         $from = $this->_buildSqlFromPart(true);

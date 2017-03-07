@@ -30,10 +30,10 @@
  * @since       1.0
  * @version     $Revision$
  */
-class Doctrine_Ticket_DC828_TestCase extends Doctrine_UnitTestCase 
+class Doctrine_Ticket_DC828_TestCase extends Doctrine_UnitTestCase
 {
     private $sqlStackCounter = 0;
-    
+
     public function prepareTables()
     {
         $this->tables[] = 'Ticket_DC828_Model';
@@ -50,7 +50,7 @@ class Doctrine_Ticket_DC828_TestCase extends Doctrine_UnitTestCase
     {
         Doctrine_Query::create()->select()->from('Ticket_DC828_Model')->limit(10)->execute();
 
-        $expected = 'SELECT * FROM (SELECT TOP 10 * FROM (SELECT TOP 10 [t].[model_id] AS [t__model_id], [t].[username] AS [t__username], [t].[password] AS [t__password] FROM [ticket__d_c828__model] [t]) AS [inner_tbl]) AS [outer_tbl]';
+        $expected = 'SELECT TOP 10 [t].[model_id] AS [t__model_id], [t].[username] AS [t__username], [t].[password] AS [t__password] FROM [ticket__d_c828__model] [t]';
         $sql = current(array_slice($this->dbh->getAll(), $this->sqlStackCounter++, 1));
 
         $this->assertEqual($expected, $sql);
@@ -59,14 +59,14 @@ class Doctrine_Ticket_DC828_TestCase extends Doctrine_UnitTestCase
     public function testLimitOffsetWithoutOrderBy()
     {
         $exception = false;
-        
+
         try {
             Doctrine_Query::create()->select()->from('Ticket_DC828_Model')->limit(10)->offset(5)->execute();
         } catch (Doctrine_Connection_Exception $e) {
             $exception = true;
             $this->assertEqual($e->getMessage(), 'OFFSET cannot be used in MSSQL without ORDER BY due to emulation reasons.');
         }
-        
+
         $this->assertTrue($exception);
     }
 
@@ -84,7 +84,7 @@ class Doctrine_Ticket_DC828_TestCase extends Doctrine_UnitTestCase
     {
         Doctrine_Query::create()->select()->from('Ticket_DC828_Model')->orderBy('username')->limit(10)->execute();
 
-        $expected = 'SELECT * FROM (SELECT TOP 10 * FROM (SELECT TOP 10 [t].[model_id] AS [t__model_id], [t].[username] AS [t__username], [t].[password] AS [t__password] FROM [ticket__d_c828__model] [t] ORDER BY [t].[username]) AS [inner_tbl] ORDER BY [inner_tbl].[t__username] DESC) AS [outer_tbl] ORDER BY [outer_tbl].[t__username] ASC';
+        $expected = 'SELECT TOP 10 [t].[model_id] AS [t__model_id], [t].[username] AS [t__username], [t].[password] AS [t__password] FROM [ticket__d_c828__model] [t] ORDER BY [t].[username]';
         $sql = current(array_slice($this->dbh->getAll(), $this->sqlStackCounter++, 1));
 
         $this->assertEqual($expected, $sql);
@@ -94,7 +94,7 @@ class Doctrine_Ticket_DC828_TestCase extends Doctrine_UnitTestCase
     {
         Doctrine_Query::create()->select()->from('Ticket_DC828_Model')->orderBy('username')->limit(10)->offset(5)->execute();
 
-        $expected = 'SELECT * FROM (SELECT TOP 10 * FROM (SELECT TOP 15 [t].[model_id] AS [t__model_id], [t].[username] AS [t__username], [t].[password] AS [t__password] FROM [ticket__d_c828__model] [t] ORDER BY [t].[username]) AS [inner_tbl] ORDER BY [inner_tbl].[t__username] DESC) AS [outer_tbl] ORDER BY [outer_tbl].[t__username] ASC';
+        $expected = 'SELECT * FROM (SELECT ROW_NUMBER() OVER (ORDER BY [t].[username]) AS [DOCTRINE_ROWNUM], [t].[model_id] AS [t__model_id], [t].[username] AS [t__username], [t].[password] AS [t__password] FROM [ticket__d_c828__model] [t] ) AS [doctrine_tbl] WHERE [DOCTRINE_ROWNUM] BETWEEN 6 AND 15';
         $sql = current(array_slice($this->dbh->getAll(), $this->sqlStackCounter++, 1));
 
         $this->assertEqual($expected, $sql);
@@ -104,7 +104,7 @@ class Doctrine_Ticket_DC828_TestCase extends Doctrine_UnitTestCase
     {
         Doctrine_Query::create()->select()->from('Ticket_DC828_Model')->orderBy('username, password')->limit(10)->offset(5)->execute();
 
-        $expected = 'SELECT * FROM (SELECT TOP 10 * FROM (SELECT TOP 15 [t].[model_id] AS [t__model_id], [t].[username] AS [t__username], [t].[password] AS [t__password] FROM [ticket__d_c828__model] [t] ORDER BY [t].[username], [t].[password]) AS [inner_tbl] ORDER BY [inner_tbl].[t__username] DESC, [inner_tbl].[t__password] DESC) AS [outer_tbl] ORDER BY [outer_tbl].[t__username] ASC, [outer_tbl].[t__password] ASC';
+        $expected = 'SELECT * FROM (SELECT ROW_NUMBER() OVER (ORDER BY [t].[username], [t].[password]) AS [DOCTRINE_ROWNUM], [t].[model_id] AS [t__model_id], [t].[username] AS [t__username], [t].[password] AS [t__password] FROM [ticket__d_c828__model] [t] ) AS [doctrine_tbl] WHERE [DOCTRINE_ROWNUM] BETWEEN 6 AND 15';
         $sql = current(array_slice($this->dbh->getAll(), $this->sqlStackCounter++, 1));
 
         $this->assertEqual($expected, $sql);

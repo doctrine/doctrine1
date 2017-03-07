@@ -49,7 +49,7 @@ class Doctrine_Relation_OrderBy_TestCase extends Doctrine_UnitTestCase
 
     public function testFullDqlQuery()
     {
-        $userTable = Doctrine::getTable('OrderByTest_User');
+        $userTable = Doctrine_Core::getTable('OrderByTest_User');
         $q = $userTable
             ->createQuery('u')
             ->select('u.id')
@@ -64,7 +64,7 @@ class Doctrine_Relation_OrderBy_TestCase extends Doctrine_UnitTestCase
 
     public function testLazyLoadingQueries()
     {
-        $userTable = Doctrine::getTable('OrderByTest_User');
+        $userTable = Doctrine_Core::getTable('OrderByTest_User');
 
         $this->assertEqual($userTable->getRelation('Articles')->getRelationDql(1), 'FROM OrderByTest_Article WHERE OrderByTest_Article.user_id IN (?) ORDER BY OrderByTest_Article.title ASC');
         $this->assertEqual($userTable->getRelation('Groups')->getRelationDql(1), 'FROM OrderByTest_Group.OrderByTest_UserGroup WHERE OrderByTest_Group.OrderByTest_UserGroup.user_id IN (?) ORDER BY OrderByTest_Group.name ASC');
@@ -100,7 +100,7 @@ class Doctrine_Relation_OrderBy_TestCase extends Doctrine_UnitTestCase
 
     public function testMasterOrderBy()
     {
-        $q = Doctrine::getTable('OrderByTest_Category')
+        $q = Doctrine_Core::getTable('OrderByTest_Category')
             ->createQuery('c')
             ->select('c.id, p.id')
             ->leftJoin('c.Posts p');
@@ -118,7 +118,7 @@ class Doctrine_Relation_OrderBy_TestCase extends Doctrine_UnitTestCase
 
     public function testOrderByFromQueryComesFirst()
     {
-        $q = Doctrine::getTable('OrderByTest_Category')
+        $q = Doctrine_Core::getTable('OrderByTest_Category')
             ->createQuery('c')
             ->select('c.id, p.id')
             ->leftJoin('c.Posts p')
@@ -129,7 +129,7 @@ class Doctrine_Relation_OrderBy_TestCase extends Doctrine_UnitTestCase
 
     public function testWeirdSort()
     {
-        $q = Doctrine::getTable('OrderByTest_WeirdSort')
+        $q = Doctrine_Core::getTable('OrderByTest_WeirdSort')
             ->createQuery('w')
             ->select('w.id');
 

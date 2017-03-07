@@ -1,10 +1,10 @@
 <?php
-require_once dirname(__FILE__) . '/../lib/Doctrine.php';
+require_once dirname(__FILE__) . '/../lib/Doctrine/Core.php';
 
 
 error_reporting(E_ALL);
 
-spl_autoload_register(array('Doctrine', 'autoload'));
+spl_autoload_register(array('Doctrine_Core', 'autoload'));
 require_once 'classes.php';
 require_once dirname(__FILE__) . '/../models/location.php';
 
@@ -13,7 +13,7 @@ print "<pre>";
 $manager = Doctrine_Manager::getInstance();
 $dbh = Doctrine_Db::getConnection('sqlite::memory:');
 $conn = $manager->openConnection($dbh);
-/**
+/*
 $user = new User();
 $user->name = 'zYne';
 $user->Phonenumber[0]->phonenumber = '123 123';

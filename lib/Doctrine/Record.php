@@ -2006,6 +2006,8 @@ abstract class Doctrine_Record extends Doctrine_Record_Abstract implements Count
         if ($refresh) {
             $this->refresh();
         }
+
+        return $this;
     }
 
     /**

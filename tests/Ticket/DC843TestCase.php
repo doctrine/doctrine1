@@ -30,10 +30,10 @@
  * @since       1.0
  * @version     $Revision$
  */
-class Doctrine_Ticket_DC843_TestCase extends Doctrine_UnitTestCase 
+class Doctrine_Ticket_DC843_TestCase extends Doctrine_UnitTestCase
 {
     private $sqlStackCounter = 0;
-    
+
     public function prepareTables()
     {
         $this->tables[] = 'Ticket_DC843_Model';
@@ -48,17 +48,17 @@ class Doctrine_Ticket_DC843_TestCase extends Doctrine_UnitTestCase
 
     public function testWithMagicMethod()
     {
-        Doctrine::getTable('Ticket_DC843_Model')->findByUsernameAndFoo('foo', 'bar');
+        Doctrine_Core::getTable('Ticket_DC843_Model')->findByUsernameAndFoo('foo', 'bar');
 
         $expected = "SELECT [t].[model_id] AS [t__model_id], [t].[username] AS [t__username], [t].[password] AS [t__password], [t].[foo] AS [t__foo] FROM [ticket__d_c843__model] [t] WHERE ([t].[username] = 'foo' AND [t].[foo] LIKE 'bar')";
         $sql = current(array_slice($this->dbh->getAll(), $this->sqlStackCounter++, 1));
 
         $this->assertEqual($expected, $sql);
     }
-    
+
     public function testQuery()
     {
-        Doctrine::getTable('Ticket_DC843_Model')
+        Doctrine_Core::getTable('Ticket_DC843_Model')
             ->createQuery('t')
             ->where('t.username = ?', 'foo')
             ->andWhere('t.foo = ?', 'bar')
@@ -72,13 +72,27 @@ class Doctrine_Ticket_DC843_TestCase extends Doctrine_UnitTestCase
 
     public function testQueryWithLike()
     {
-        Doctrine::getTable('Ticket_DC843_Model')
+        Doctrine_Core::getTable('Ticket_DC843_Model')
             ->createQuery('t')
             ->where('t.username LIKE ?', 'foo')
             ->andWhere('t.foo = ?', 'bar')
             ->execute();
 
         $expected = "SELECT [t].[model_id] AS [t__model_id], [t].[username] AS [t__username], [t].[password] AS [t__password], [t].[foo] AS [t__foo] FROM [ticket__d_c843__model] [t] WHERE ([t].[username] LIKE 'foo' AND [t].[foo] LIKE 'bar')";
+        $sql = current(array_slice($this->dbh->getAll(), $this->sqlStackCounter++, 1));
+
+        $this->assertEqual($expected, $sql);
+    }
+
+    public function testQueryWithNull()
+    {
+        Doctrine_Core::getTable('Ticket_DC843_Model')
+            ->createQuery('t')
+            ->where('t.username LIKE ?', 'foo')
+            ->andWhere('t.foo IS NULL')
+            ->execute();
+
+        $expected = "SELECT [t].[model_id] AS [t__model_id], [t].[username] AS [t__username], [t].[password] AS [t__password], [t].[foo] AS [t__foo] FROM [ticket__d_c843__model] [t] WHERE ([t].[username] LIKE 'foo' AND [t].[foo] IS NULL)";
         $sql = current(array_slice($this->dbh->getAll(), $this->sqlStackCounter++, 1));
 
         $this->assertEqual($expected, $sql);

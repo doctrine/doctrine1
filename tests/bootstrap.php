@@ -12,10 +12,10 @@ ini_set('date.timezone', 'GMT+0');
 
 define('DOCTRINE_DIR', $_SERVER['DOCTRINE_DIR']);
 
-require_once(DOCTRINE_DIR . '/lib/Doctrine.php');
+require_once(DOCTRINE_DIR . '/lib/Doctrine/Core.php');
 
-spl_autoload_register(array('Doctrine', 'autoload'));
-spl_autoload_register(array('Doctrine', 'modelsAutoload'));
+spl_autoload_register(array('Doctrine_Core', 'autoload'));
+spl_autoload_register(array('Doctrine_Core', 'modelsAutoload'));
 
 require_once(DOCTRINE_DIR . '/tests/DoctrineTest.php');
 

@@ -1,6 +1,6 @@
 <?php
 /*
- *  $Id: Doctrine.php 6483 2009-10-12 17:29:18Z jwage $
+ *  $Id$
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -28,7 +28,7 @@
  * @license     http://www.opensource.org/licenses/lgpl-license.php LGPL
  * @link        www.doctrine-project.org
  * @since       1.0
- * @version     $Revision: 6483 $
+ * @version     $Revision$
  */
 class Doctrine_Core
 {
@@ -180,7 +180,7 @@ class Doctrine_Core
     const ATTR_NAME_PREFIX                  = 121;
     const ATTR_CREATE_TABLES                = 122;
     const ATTR_COLL_LIMIT                   = 123;
-                                        
+
     const ATTR_CACHE                        = 150;
     const ATTR_RESULT_CACHE                 = 150;
     const ATTR_CACHE_LIFESPAN               = 151;
@@ -210,6 +210,11 @@ class Doctrine_Core
     const ATTR_MODEL_CLASS_PREFIX           = 178;
     const ATTR_TABLE_CLASS_FORMAT           = 179;
     const ATTR_MAX_IDENTIFIER_LENGTH        = 180;
+    const ATTR_USE_TABLE_REPOSITORY         = 181;
+    const ATTR_USE_TABLE_IDENTITY_MAP       = 182;
+    const ATTR_TABLE_CACHE                  = 183;
+    const ATTR_TABLE_CACHE_LIFESPAN         = 184;
+
 
     /**
      * LIMIT CONSTANTS
@@ -347,12 +352,12 @@ class Doctrine_Core
      * HYDRATE_NONE
      */
     const HYDRATE_NONE              = 4;
-    
+
     /**
      * HYDRATE_SCALAR
      */
     const HYDRATE_SCALAR            = 5;
-    
+
     /**
      * HYDRATE_SINGLE_SCALAR
      */
@@ -362,14 +367,14 @@ class Doctrine_Core
      * HYDRATE_ON_DEMAND
      */
     const HYDRATE_ON_DEMAND         = 7;
-    
+
     /**
-     * HYDRATE_ARRAY_HIERARCHY     
+     * HYDRATE_ARRAY_HIERARCHY
      */
     const HYDRATE_ARRAY_HIERARCHY   = 8;
-    
+
     /**
-     * HYDRATE_RECORD_HIERARCHY     
+     * HYDRATE_RECORD_HIERARCHY
      */
     const HYDRATE_RECORD_HIERARCHY  = 9;
 
@@ -403,9 +408,9 @@ class Doctrine_Core
      */
     const VALIDATE_ALL              = 7;
 
-    /** 
+    /**
      * VALIDATE_USER
-     */ 
+     */
     const VALIDATE_USER             = 8;
 
     /**
@@ -457,7 +462,7 @@ class Doctrine_Core
      * MODEL_LOADING_PEAR
      *
      * Constant for pear model loading
-     * Will simply store the path passed to Doctrine_Core::loadModels() 
+     * Will simply store the path passed to Doctrine_Core::loadModels()
      * and Doctrine_Core::autoload() will check there
      */
     const MODEL_LOADING_PEAR = 3;
@@ -568,7 +573,7 @@ class Doctrine_Core
     /**
      * Set the path to autoload extension classes from
      *
-     * @param string $extensionsPath 
+     * @param string $extensionsPath
      * @return void
      */
     public static function setExtensionsPath($extensionsPath)
@@ -600,7 +605,7 @@ class Doctrine_Core
      * Set the directory where your models are located for PEAR style
      * naming convention autoloading.
      *
-     * @param string $directory 
+     * @param string $directory
      * @return void
      */
     public static function setModelsDirectory($directory)
@@ -646,10 +651,10 @@ class Doctrine_Core
 
                 $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir),
                                                         RecursiveIteratorIterator::LEAVES_ONLY);
-                                                        
+
                 foreach ($it as $file) {
                     $e = explode('.', $file->getFileName());
-                    
+
                     if (end($e) === 'php' && strpos($file->getFileName(), '.inc') === false) {
                         if ($modelLoading == Doctrine_Core::MODEL_LOADING_PEAR) {
                             $className = str_replace($dir . DIRECTORY_SEPARATOR, null, $file->getPathName());
@@ -672,10 +677,16 @@ class Doctrine_Core
                                 $declaredBefore = get_declared_classes();
                                 require_once($file->getPathName());
                                 $declaredAfter = get_declared_classes();
-                                
-                                // Using array_slice because array_diff is broken is some PHP versions
-                                $foundClasses = array_slice($declaredAfter, count($declaredBefore));
-                                
+
+                                if (defined('HHVM_VERSION')) {
+                                    // on HHVM get_declared_classes() returns in a different order, array_diff() works, so we have to use it
+                                    $foundClasses = array_diff($declaredAfter, $declaredBefore);
+                                } else {
+                                    // Using array_slice because array_diff is broken is some PHP versions
+                                    // https://bugs.php.net/bug.php?id=47643
+                                    $foundClasses = array_slice($declaredAfter, count($declaredBefore));
+                                }
+
                                 if ($foundClasses) {
                                     foreach ($foundClasses as $className) {
                                         if (self::isValidModelClass($className)) {
@@ -685,7 +696,7 @@ class Doctrine_Core
                                         }
                                     }
                                 }
-                                
+
                                 $previouslyLoaded = array_keys(self::$_loadedModelFiles, $file->getPathName());
 
                                 if ( ! empty($previouslyLoaded)) {
@@ -700,9 +711,9 @@ class Doctrine_Core
                 }
             }
         }
-        
+
         asort($loadedModels);
-        
+
         return $loadedModels;
     }
 
@@ -743,8 +754,14 @@ class Doctrine_Core
             Doctrine_Core::getTable($model);
 
             $declaredAfter = get_declared_classes();
-            // Using array_slice because array_diff is broken is some PHP versions
-            $foundClasses = array_slice($declaredAfter, count($declaredBefore) - 1);
+            if (defined('HHVM_VERSION')) {
+                // on HHVM get_declared_classes() returns in a different order, array_diff() works, so we have to use it
+                $foundClasses = array_diff($declaredAfter, $declaredBefore);
+            } else {
+                // Using array_slice because array_diff is broken is some PHP versions
+                // https://bugs.php.net/bug.php?id=47643
+                $foundClasses = array_slice($declaredAfter, count($declaredBefore) - 1);
+            }
             foreach ($foundClasses as $class) {
                 if (self::isValidModelClass($class)) {
                     $models[] = $class;
@@ -999,11 +1016,11 @@ class Doctrine_Core
      * @param string $append Whether or not to append the data
      * @return void
      */
-    public static function loadData($yamlPath, $append = false)
+    public static function loadData($yamlPath, $append = false, $charset = 'UTF-8')
     {
         $data = new Doctrine_Data();
 
-        return $data->importData($yamlPath, 'yml', array(), $append);
+        return $data->importData($yamlPath, 'yml', array(), $append, $charset);
     }
 
     /**

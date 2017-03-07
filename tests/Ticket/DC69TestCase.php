@@ -35,7 +35,7 @@ class Doctrine_Ticket_DC69_TestCase extends Doctrine_UnitTestCase
     public function testTest()
     {
         try {
-            $user = Doctrine::getTable('User')
+            $user = Doctrine_Core::getTable('User')
                 ->createQuery('u')
                 ->limit(1)
                 ->fetchOne();

@@ -40,7 +40,7 @@ class Doctrine_Ticket_DC266_TestCase extends Doctrine_UnitTestCase
 
     public function testTest()
     {
-        $this->assertEqual('my_table_name_translation', Doctrine::getTable('Ticket_DC266_ArticleTranslation')->getTableName());
+        $this->assertEqual('my_table_name_translation', Doctrine_Core::getTable('Ticket_DC266_ArticleTranslation')->getTableName());
     }
 }
 

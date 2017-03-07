@@ -101,4 +101,35 @@ class Doctrine_Expression_Mssql extends Doctrine_Expression_Driver
     {
         return 'LEN (' . $column . ')';
     }
+
+    /**
+     * Returns an integer representing the specified datepart of the specified date.
+     *
+     * datepart
+     *
+     * Is the parameter that specifies the part of the date to return. The table lists dateparts and abbreviations recognized by Microsoft¨ SQL Serverª.
+     *
+     * Datepart Abbreviations
+     * year yy, yyyy
+     * quarter qq, q
+     * month mm, m
+     * dayofyear dy, y
+     * day dd, d
+     * week wk, ww
+     * weekday dw
+     * hour hh
+     * minute mi, n
+     * second ss, s
+     * millisecond ms
+     *
+     * @param $datepart
+     * @param $date
+     */
+    public function date_part($datepart, $date)
+    {
+        // remove ' and " from datepart for dblib
+        $datepart = str_replace(array('\'', '"'), '', $datepart);
+
+        return 'DATEPART(' . $datepart . ', ' . $date . ')';
+    }
 }

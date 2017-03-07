@@ -187,7 +187,10 @@ class Doctrine_Adapter_Statement_Oracle implements Doctrine_Adapter_Statement_In
     public function closeCursor()
     {
         $this->bindParams = array();
-        return oci_free_statement($this->statement);
+        if (is_resource($this->statement)) {
+            return oci_free_statement($this->statement);
+        }
+        return true;
     }
 
     /** 
@@ -583,7 +586,7 @@ class Doctrine_Adapter_Statement_Oracle implements Doctrine_Adapter_Statement_In
         }
         $bind_index = 1;
         // Replace ? bind-placeholders with :oci_b_var_ variables
-        $query = preg_replace("/(\?)/e", '":oci_b_var_". $bind_index++' , $query);
+        $query = preg_replace_callback("/(\?)/", function($m) use(&$bind_index) { return ":oci_b_var_". $bind_index++; } , $query);
 
         $this->statement =  @oci_parse($this->connection, $query);
 

@@ -21,7 +21,7 @@
 
 /**
  * Doctrine_Data
- * 
+ *
  * Base Doctrine_Data class for dumping and loading data to and from fixtures files.
  * Support formats are based on what formats are available in Doctrine_Parser such as yaml, xml, json, etc.
  *
@@ -46,7 +46,7 @@ class Doctrine_Data
 
     /**
      * format
-     * 
+     *
      * the default and current format we are working with
      *
      * @var string
@@ -80,12 +80,14 @@ class Doctrine_Data
      */
     protected $_exportIndividualFiles = false;
 
+    protected $_charset = 'UTF-8';
+
     /**
      * setFormat
      *
      * Set the current format we are working with
-     * 
-     * @param string $format 
+     *
+     * @param string $format
      * @return void
      */
     public function setFormat($format)
@@ -97,7 +99,7 @@ class Doctrine_Data
      * getFormat
      *
      * Get the current format we are working with
-     * 
+     *
      * @return void
      */
     public function getFormat()
@@ -106,10 +108,10 @@ class Doctrine_Data
     }
 
     /**
-     * getFormats 
+     * getFormats
      *
      * Get array of available formats
-     * 
+     *
      * @return void
      */
     public function getFormats()
@@ -121,7 +123,7 @@ class Doctrine_Data
      * setDirectory
      *
      * Set the array/string of directories or yml file paths
-     * 
+     *
      * @return void
      */
     public function setDirectory($directory)
@@ -133,7 +135,7 @@ class Doctrine_Data
      * getDirectory
      *
      * Get directory for dumping/loading data from and to
-     * 
+     *
      * @return void
      */
     public function getDirectory()
@@ -145,8 +147,8 @@ class Doctrine_Data
      * setModels
      *
      * Set the array of specified models to work with
-     * 
-     * @param string $models 
+     *
+     * @param string $models
      * @return void
      */
     public function setModels($models)
@@ -167,10 +169,10 @@ class Doctrine_Data
     }
 
     /**
-     * _exportIndividualFiles 
+     * _exportIndividualFiles
      *
      * Set/Get whether or not to export individual files
-     * 
+     *
      * @return bool $_exportIndividualFiles
      */
     public function exportIndividualFiles($bool = null)
@@ -178,8 +180,18 @@ class Doctrine_Data
         if ($bool !== null) {
             $this->_exportIndividualFiles = $bool;
         }
-        
+
         return $this->_exportIndividualFiles;
+    }
+
+    public function setCharset($charset)
+    {
+        $this->_charset = $charset;
+    }
+
+    public function getCharset()
+    {
+        return $this->_charset;
     }
 
     /**
@@ -187,10 +199,10 @@ class Doctrine_Data
      *
      * Interface for exporting data to fixtures files from Doctrine models
      *
-     * @param string $directory 
-     * @param string $format 
-     * @param string $models 
-     * @param string $_exportIndividualFiles 
+     * @param string $directory
+     * @param string $format
+     * @param string $models
+     * @param string $_exportIndividualFiles
      * @return void
      */
     public function exportData($directory, $format = 'yml', $models = array(), $_exportIndividualFiles = false)
@@ -199,7 +211,7 @@ class Doctrine_Data
         $export->setFormat($format);
         $export->setModels($models);
         $export->exportIndividualFiles($_exportIndividualFiles);
-        
+
         return $export->doExport();
     }
 
@@ -208,17 +220,18 @@ class Doctrine_Data
      *
      * Interface for importing data from fixture files to Doctrine models
      *
-     * @param string $directory 
-     * @param string $format 
-     * @param string $models 
+     * @param string $directory
+     * @param string $format
+     * @param string $models
      * @return void
      */
-    public function importData($directory, $format = 'yml', $models = array(), $append = false)
+    public function importData($directory, $format = 'yml', $models = array(), $append = false, $charset = 'UTF-8')
     {
         $import = new Doctrine_Data_Import($directory);
         $import->setFormat($format);
         $import->setModels($models);
-        
+        $import->setCharset($charset);
+
         return $import->doImport($append);
     }
 
@@ -226,33 +239,33 @@ class Doctrine_Data
      * isRelation
      *
      * Check if a fieldName on a Doctrine_Record is a relation, if it is we return that relationData
-     * 
-     * @param string $Doctrine_Record 
-     * @param string $fieldName 
+     *
+     * @param string $Doctrine_Record
+     * @param string $fieldName
      * @return void
      */
     public function isRelation(Doctrine_Record $record, $fieldName)
     {
         $relations = $record->getTable()->getRelations();
-        
+
         foreach ($relations as $relation) {
             $relationData = $relation->toArray();
-            
+
             if ($relationData['local'] === $fieldName) {
                 return $relationData;
             }
-            
+
         }
-        
+
         return false;
     }
 
     /**
      * purge
-     * 
+     *
      * Purge all data for loaded models or for the passed array of Doctrine_Records
      *
-     * @param string $models 
+     * @param string $models
      * @return void
      */
     public function purge($models = null)
@@ -269,11 +282,15 @@ class Doctrine_Data
         }
 
         foreach ($connections as $connection => $models) {
-            $models = Doctrine_Manager::getInstance()->getConnection($connection)->unitOfWork->buildFlushTree($models);
-            $models = array_reverse($models);
+            $conn = Doctrine_Manager::getInstance()->getConnection($connection);
+            $conn->beginTransaction();
+
+            $models = array_reverse($conn->unitOfWork->buildFlushTree($models));
             foreach ($models as $model) {
                 Doctrine_Core::getTable($model)->createQuery()->delete()->execute();
             }
+
+            $conn->commit();
         }
     }
 }

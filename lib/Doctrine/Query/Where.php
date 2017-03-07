@@ -44,7 +44,7 @@ class Doctrine_Query_Where extends Doctrine_Query_Condition
 
         $where = $this->_tokenizer->bracketTrim(trim($where));
         $conn  = $this->query->getConnection();
-        $terms = $this->_tokenizer->sqlExplode($where);  
+        $terms = $this->_tokenizer->sqlExplode($where);
 
         if (count($terms) > 1) {
             if (substr($where, 0, 6) == 'EXISTS') {
@@ -76,20 +76,20 @@ class Doctrine_Query_Where extends Doctrine_Query_Condition
                     $map = $this->query->load($reference, false);
                     $alias = $this->query->getSqlTableAlias($reference);
                 }
-                
+
                 // DC-843 Modifiy operator for MSSQL
                 // @TODO apply database dependent parsing
-                //       list($leftExpr, $operator, $rightExpr) = $conn->modifyWhereCondition($leftExpr, $operator, $rightExpr); 
+                //       list($leftExpr, $operator, $rightExpr) = $conn->modifyWhereCondition($leftExpr, $operator, $rightExpr);
                 $driverName = strtolower($conn->getDriverName());
                 if ($driverName == 'mssql' && !empty($reference)) {
                     $cmp = $this->query->getQueryComponent($reference);
                     $table = $cmp['table'];
-                
+
                     /* @var $table Doctrine_Table */
                     $column = $table->getColumnName($fieldname);
                     $columndef = $table->getColumnDefinition($column);
 
-                    if ($columndef['type'] == 'string' && ($columndef['length'] == NULL || $columndef['length'] > $conn->varchar_max_length)) {
+                    if ($columndef['type'] == 'string' && ($columndef['length'] == NULL || $columndef['length'] > $conn->varchar_max_length) && strtoupper($rightExpr) != 'NULL') {
                         $operator = 'LIKE';
                     }
                 }
@@ -131,7 +131,7 @@ class Doctrine_Query_Where extends Doctrine_Query_Condition
                 $leftExprOriginal . ' ' . $operator . ' ' . $rightExpr . '"'
             );
         }
-        
+
         // Right Expression
         $rightExpr = ($rightExpr == '?' && $isInX)
             ? $this->_buildWhereInArraySqlPart($rightExpr)

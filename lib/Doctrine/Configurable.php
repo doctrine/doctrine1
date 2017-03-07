@@ -1,6 +1,6 @@
 <?php
 /*
- *  $Id: Configurable.php 7490 2010-03-29 19:53:27Z jwage $
+ *  $Id$
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -28,7 +28,7 @@
  * @license     http://www.opensource.org/licenses/lgpl-license.php LGPL
  * @link        www.doctrine-project.org
  * @since       1.0
- * @version     $Revision: 7490 $
+ * @version     $Revision$
  * @author      Konsta Vesterinen <kvesteri@cc.hut.fi>
  */
 abstract class Doctrine_Configurable extends Doctrine_Locator_Injectable
@@ -49,7 +49,7 @@ abstract class Doctrine_Configurable extends Doctrine_Locator_Injectable
      *                                      implementation classes
      */
     protected $_impl = array();
-    
+
     /**
      * @var array $_params                  an array of user defined parameters
      */
@@ -87,6 +87,7 @@ abstract class Doctrine_Configurable extends Doctrine_Locator_Injectable
             case Doctrine_Core::ATTR_CACHE:
             case Doctrine_Core::ATTR_RESULT_CACHE:
             case Doctrine_Core::ATTR_QUERY_CACHE:
+            case Doctrine_Core::ATTR_TABLE_CACHE:
                 if ($value !== null) {
                     if ( ! ($value instanceof Doctrine_Cache_Interface)) {
                         throw new Doctrine_Exception('Cache driver should implement Doctrine_Cache_Interface');
@@ -121,43 +122,43 @@ abstract class Doctrine_Configurable extends Doctrine_Locator_Injectable
     	if ($namespace == null) {
     	    $namespace = $this->getAttribute(Doctrine_Core::ATTR_DEFAULT_PARAM_NAMESPACE);
     	}
-    	
+
     	if ( ! isset($this->_params[$namespace])) {
     	    return null;
     	}
 
         return $this->_params[$namespace];
     }
-    
+
     public function getParamNamespaces()
     {
         return array_keys($this->_params);
     }
 
-    public function setParam($name, $value, $namespace = null) 
+    public function setParam($name, $value, $namespace = null)
     {
     	if ($namespace == null) {
     	    $namespace = $this->getAttribute(Doctrine_Core::ATTR_DEFAULT_PARAM_NAMESPACE);
     	}
-    	
+
     	$this->_params[$namespace][$name] = $value;
-    	
+
     	return $this;
     }
-    
-    public function getParam($name, $namespace = null) 
+
+    public function getParam($name, $namespace = null)
     {
     	if ($namespace == null) {
     	    $namespace = $this->getAttribute(Doctrine_Core::ATTR_DEFAULT_PARAM_NAMESPACE);
     	}
-    	
+
         if ( ! isset($this->_params[$namespace][$name])) {
             if (isset($this->parent)) {
                 return $this->parent->getParam($name, $namespace);
             }
             return null;
         }
-        
+
         return $this->_params[$namespace][$name];
     }
 
@@ -194,8 +195,8 @@ abstract class Doctrine_Configurable extends Doctrine_Locator_Injectable
         }
         return $this->_impl[$template];
     }
-    
-    
+
+
     public function hasImpl($template)
     {
         if ( ! isset($this->_impl[$template])) {
@@ -331,7 +332,7 @@ abstract class Doctrine_Configurable extends Doctrine_Locator_Injectable
         if (isset($this->attributes[$attribute])) {
             return $this->attributes[$attribute];
         }
-        
+
         if (isset($this->parent)) {
             return $this->parent->getAttribute($attribute);
         }

@@ -58,7 +58,7 @@ class Doctrine_Ticket_DC399_TestCase extends Doctrine_UnitTestCase
       $user->unlink("Phonenumber", $user->Phonenumber[0]->id);
       $user->save();
 
-      $phone = Doctrine::getTable("Phonenumber")->find($phone_id);
+      $phone = Doctrine_Core::getTable("Phonenumber")->find($phone_id);
       $this->assertEqual($phone_id, $phone->id);
     }
 

@@ -45,7 +45,7 @@ class Doctrine_Ticket_DC317_TestCase extends Doctrine_UnitTestCase
         $page->title = 'My Title';
         $page->save();
 
-        $tree = Doctrine::getTable('Ticket_DC317_Page')->getTree();
+        $tree = Doctrine_Core::getTable('Ticket_DC317_Page')->getTree();
         $tree->createRoot( $page );
 
         $this->assertEqual($page->topic, 'my-topic');

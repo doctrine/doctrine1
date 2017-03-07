@@ -42,11 +42,11 @@ class Doctrine_Template_Geographical extends Doctrine_Template
     protected $_options = array('latitude' =>  array('name'     =>  'latitude',
                                                      'type'     =>  'decimal',
                                                      'size'     =>  10,
-                                                     'options'  =>  array('scale'=>6)),
+                                                     'options'  =>  array('scale' => 6)),
                                 'longitude' => array('name'     =>  'longitude',
                                                      'type'     =>  'decimal',
                                                      'size'     =>  10,
-                                                     'options'  =>  array('scale'=>6)));
+                                                     'options'  =>  array('scale' => 6)));
 
     /**
      * Set table definition for Geographical behavior

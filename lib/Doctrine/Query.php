@@ -1792,8 +1792,25 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
                         . ' GROUP BY doctrine_subquery_alias.' . $quotedIdentifierColumnName
                         . ' ORDER BY MIN(ROWNUM)';
             } else {
-                $subquery = 'SELECT DISTINCT doctrine_subquery_alias.' . $quotedIdentifierColumnName
+                // [OV14] ids returned by the subquery are ordered. The order must be kept while filtering duplicates out in mysql.
+                // otherwise limit would be executed after ids are reordered by distinct / group by, and that order cannot be determined.
+                if ($driverName == 'mysql') {
+                    // assign an incremented number to each row with id
+                    $subquery = 'SELECT @rownum:=@rownum + 1 as row_number,' 
+                        . ' doctrine_subquery_rownum_alias.' . $quotedIdentifierColumnName
+                        . ' FROM (' . $subquery . ') doctrine_subquery_rownum_alias,'
+                        . ' (SELECT @rownum := 0) rownum_var';
+
+                    // return unique ids and keep order by using assigned row_number
+                    $subquery = 'SELECT doctrine_subquery_alias.' . $quotedIdentifierColumnName . ', MIN(doctrine_subquery_alias.row_number)'
+                        . ' FROM (' . $subquery . ') doctrine_subquery_alias'
+                        . ' GROUP BY doctrine_subquery_alias.' . $quotedIdentifierColumnName
+                        . ' ORDER BY MIN(doctrine_subquery_alias.row_number)';
+                } else {
+                    // [OV21] @todo not sure if it works correctly with other drivers... 
+                    $subquery = 'SELECT DISTINCT doctrine_subquery_alias.' . $quotedIdentifierColumnName
                         . ' FROM (' . $subquery . ') doctrine_subquery_alias';
+                }
             }
         }
 

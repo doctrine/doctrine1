@@ -58,7 +58,21 @@ class Doctrine_Ticket_OV14_TestCase extends Doctrine_UnitTestCase
             ->leftJoin('u.Phonenumber p')
             ->orderBy('p.phonenumber')
             ->limit(10);
-        $this->assertEqual($q->getSqlQuery(), 'SELECT e.id AS e__id, e.name AS e__name, p.id AS p__id, p.phonenumber AS p__phonenumber FROM entity e LEFT JOIN phonenumber p ON e.id = p.entity_id WHERE e.id IN (SELECT doctrine_subquery_wrap_alias.id FROM (SELECT DISTINCT doctrine_subquery_alias.id FROM (SELECT e2.id FROM entity e2 LEFT JOIN phonenumber p2 ON e2.id = p2.entity_id WHERE (e2.type = 0) ORDER BY p2.phonenumber) doctrine_subquery_alias LIMIT 10) AS doctrine_subquery_wrap_alias) AND (e.type = 0) ORDER BY p.phonenumber');
+        $this->assertEqual($q->getSqlQuery(), 'SELECT e.id AS e__id, e.name AS e__name, p.id AS p__id, p.phonenumber AS p__phonenumber'
+            . ' FROM entity e LEFT JOIN phonenumber p ON e.id = p.entity_id'
+            . ' WHERE e.id IN ('
+                // limit subquery
+                . 'SELECT doctrine_subquery_wrap_alias.id FROM ('
+                    .'SELECT doctrine_subquery_alias.id, MIN(doctrine_subquery_alias.row_number) FROM ('
+                        .'SELECT @rownum:=@rownum + 1 as row_number, doctrine_subquery_rownum_alias.id FROM ('
+                            .'SELECT e2.id FROM entity e2 LEFT JOIN phonenumber p2 ON e2.id = p2.entity_id WHERE (e2.type = 0) ORDER BY p2.phonenumber'
+                        .') doctrine_subquery_rownum_alias, (SELECT @rownum := 0) rownum_var'
+                    .') doctrine_subquery_alias'
+                    .' GROUP BY doctrine_subquery_alias.id'
+                    .' ORDER BY MIN(doctrine_subquery_alias.row_number)'
+                    .' LIMIT 10'
+                .') AS doctrine_subquery_wrap_alias'
+            .') AND (e.type = 0) ORDER BY p.phonenumber');
 
         $this->manager->closeConnection($conn);
     }

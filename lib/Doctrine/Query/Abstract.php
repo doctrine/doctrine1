@@ -141,7 +141,8 @@ abstract class Doctrine_Query_Abstract
      * @var Doctrine_Cache_Interface  The cache driver used for caching queries.
      */
     protected $_queryCache;
-    protected $_expireQueryCache = false;
+    // [OV8] not used
+    //protected $_expireQueryCache = false;
     protected $_queryCacheTTL;
 
 
@@ -2117,6 +2118,16 @@ abstract class Doctrine_Query_Abstract
         return $this;
     }
 
+    // [OV8] added isQueryCacheEnabled method
+    /**
+     * @return bool
+     */
+    public function isQueryCacheEnabled()
+    {
+        return $this->_queryCache !== false
+            && ($this->_queryCache || $this->_conn->getAttribute(Doctrine_Core::ATTR_QUERY_CACHE));
+    }
+
     /**
      * expireCache
      *
@@ -2129,17 +2140,18 @@ abstract class Doctrine_Query_Abstract
         return $this;
     }
 
-    /**
+    // [OV8] pointless method removed
+    /*
      * expireQueryCache
      *
      * @param boolean $expire       whether or not to force cache expiration
      * @return Doctrine_Query     this object
      */
-    public function expireQueryCache($expire = true)
+    /*public function expireQueryCache($expire = true)
     {
         $this->_expireQueryCache = $expire;
         return $this;
-    }
+    }*/
 
     /**
      * setResultCacheLifeSpan

@@ -1226,6 +1226,11 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
         // Assign building/execution specific params
         $this->_params['exec'] = $params;
 
+        // [OV8] always prequery the query to call dql callbacks before any sql is generated, not only on execute()
+        // so that cache hash is always calculated properly, and that this method always returns actual end-query incl.
+        // any modifications from dql callbacks.
+        $this->_preQuery();
+
         // Initialize prepared parameters array
         $this->_execParams = $this->getFlattenedParams();
 
@@ -1238,8 +1243,7 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
 
         // [OV8] queryCache modifications - hook it in getSqlQuery method instead of execute method only
         $cached = false;
-        $queryCacheEnabled = ($this->_queryCache !== false && ($this->_queryCache || $this->_conn->getAttribute(Doctrine_Core::ATTR_QUERY_CACHE)));
-        if ($queryCacheEnabled) {
+        if ($this->isQueryCacheEnabled()) {
             $queryCacheDriver = $this->getQueryCacheDriver();
             $hash = $this->calculateQueryCacheHash($limitSubquery);
             $cached = $queryCacheDriver->fetch($hash);
@@ -1256,7 +1260,7 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
 
             // Check again because getSqlQuery() above could have flipped the _queryCache flag
             // if this query contains the limit sub query algorithm we don't need to cache it
-            if ($queryCacheEnabled) {
+            if ($this->isQueryCacheEnabled()) {
                 // Convert query into a serialized form
                 $serializedQuery = $this->getCachedForm($query);
 
@@ -1266,7 +1270,7 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
         }
 
         // [OV9] cache without limit and offset, attach now
-        if($queryCacheEnabled && $this->_conn->getAttribute(Doctrine_Core::ATTR_QUERY_CACHE_NO_OFFSET_LIMIT))
+        if($this->isQueryCacheEnabled() && $this->_conn->getAttribute(Doctrine_Core::ATTR_QUERY_CACHE_NO_OFFSET_LIMIT))
         {
             $this->_processDqlQueryPart('offset', $this->_dqlParts['offset']);
             $this->_processDqlQueryPart('limit', $this->_dqlParts['limit']);
@@ -1552,7 +1556,7 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
 
         // [OV9] cache without limit and offset
         if ($modifyLimit
-            && !(false !== $this->_queryCache && ($this->_queryCache || $this->_conn->getAttribute(Doctrine_Core::ATTR_QUERY_CACHE))
+            && !($this->isQueryCacheEnabled()
                 && $this->_conn->getAttribute(Doctrine_Core::ATTR_QUERY_CACHE_NO_OFFSET_LIMIT))) {
             $q = $this->_conn->modifyLimitQuery($q, $this->_sqlParts['limit'], $this->_sqlParts['offset'], false, false, $this);
         }
@@ -1815,7 +1819,7 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
         }
 
         // [OV9] cache without limit and offset
-        if (!(false !== $this->_queryCache && ($this->_queryCache || $this->_conn->getAttribute(Doctrine_Core::ATTR_QUERY_CACHE))
+        if (!($this->isQueryCacheEnabled()
                 && $this->_conn->getAttribute(Doctrine_Core::ATTR_QUERY_CACHE_NO_OFFSET_LIMIT))) {
             // add driver specific limit clause
             $subquery = $this->_conn->modifyLimitSubquery($table, $subquery, $this->_sqlParts['limit'], $this->_sqlParts['offset']);

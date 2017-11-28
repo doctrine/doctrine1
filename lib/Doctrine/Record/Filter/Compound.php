@@ -41,10 +41,10 @@ class Doctrine_Record_Filter_Compound extends Doctrine_Record_Filter
 
     public function init()
     {
-    	// check that all aliases exist
-    	foreach ($this->_aliases as $alias) {
+        // check that all aliases exist
+        foreach ($this->_aliases as $alias) {
             $this->_table->getRelation($alias);
-    	}
+        }
     }
 
     /**
@@ -57,13 +57,23 @@ class Doctrine_Record_Filter_Compound extends Doctrine_Record_Filter
     {
         foreach ($this->_aliases as $alias) {
             if ( ! $record->exists()) {
-                if (isset($record[$alias][$name])) {
+                // modified for php7 where a "bug" with isset($record[$nested][$nested2]) was fixed
+                // php5 did not check isset for $record[$nested] in this case, but retrieved it.
+                // so in ArrayAccess which $record implements first offsetGet was called then offsetExists for $nested2
+                // but php7 calls offsetExists for both. since relation for $alias is not loaded yet it returns false.
+                // https://bugs.php.net/bug.php?id=69659
+                // so, changed to keep old behavior which exploits the bug ;)
+                //if (isset($record[$alias][$name])) {
+                $relation = $record[$alias]; // force offsetGet
+                if (isset($relation[$name])) { // here goes offsetExists
                     $record[$alias][$name] = $value;
-                    
                     return $record;
                 }
             } else {
-                if (isset($record[$alias][$name])) {
+                // see above
+                //if (isset($record[$alias][$name])) {
+                $relation = $record[$alias]; // force offsetGet
+                if (isset($relation[$name])) { // here goes offsetExists
                     $record[$alias][$name] = $value;
                 }
 
@@ -83,11 +93,17 @@ class Doctrine_Record_Filter_Compound extends Doctrine_Record_Filter
     {
         foreach ($this->_aliases as $alias) {
             if ( ! $record->exists()) {
-                if (isset($record[$alias][$name])) {
+                // see above
+                //if (isset($record[$alias][$name])) {
+                $relation = $record[$alias]; // force offsetGet
+                if (isset($relation[$name])) { // here goes offsetExists
                     return $record[$alias][$name];
                 }
             } else {
-                if (isset($record[$alias][$name])) {
+                // see above
+                //if (isset($record[$alias][$name])) {
+                $relation = $record[$alias]; // force offsetGet
+                if (isset($relation[$name])) { // here goes offsetExists
                     return $record[$alias][$name];
                 }
             }

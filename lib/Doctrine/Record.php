@@ -2069,7 +2069,10 @@ abstract class Doctrine_Record extends Doctrine_Record_Abstract implements Count
     {
         $refresh = false;
         foreach ($array as $key => $value) {
-            if ($key == '_identifier') {
+            // in case that $key is 0 (unlikely) it would fulfill the condition 0 == string
+            // https://stackoverflow.com/questions/6843030/why-does-php-consider-0-to-be-equal-to-a-string
+            // changed to strict comparison
+            if ($key === '_identifier') {
                 $refresh = true;
                 $this->assignIdentifier($value);
                 continue;

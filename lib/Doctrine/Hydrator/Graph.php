@@ -404,25 +404,15 @@ abstract class Doctrine_Hydrator_Graph extends Doctrine_Hydrator_Abstract
         foreach ($subclasses as $subclass) {
             $table = Doctrine_Core::getTable($subclass);
             $inheritanceMap = $table->getOption('inheritanceMap');
-            if (count($inheritanceMap) > 1) {
-                $needMatches = count($inheritanceMap);
-                foreach ($inheritanceMap as $key => $value) {
-                    $key = $this->_tables[$component]->getFieldName($key);
-                    if ( isset($data[$key]) && $data[$key] == $value) {
-                        --$needMatches;
-                    }
-                }
-                if ($needMatches == 0) {
-                    $matchedComponents[] = $table->getComponentName();
-                }
-            } else {
-                list($key, $value) = each($inheritanceMap);
+            $needMatches = count($inheritanceMap);
+            foreach ($inheritanceMap as $key => $value) {
                 $key = $this->_tables[$component]->getFieldName($key);
-                if ( ! isset($data[$key]) || $data[$key] != $value) {
-                    continue;
-                } else {
-                    $matchedComponents[] = $table->getComponentName();
+                if ( isset($data[$key]) && $data[$key] == $value) {
+                    --$needMatches;
                 }
+            }
+            if ($needMatches == 0) {
+                $matchedComponents[] = $table->getComponentName();
             }
         }
         

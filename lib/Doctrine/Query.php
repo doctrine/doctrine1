@@ -1691,7 +1691,8 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
         if (($driverName == 'mysql' && !$isOrderedByJoinedColumn) || $driverName == 'pgsql' || $driverName == 'oracle' || $driverName == 'oci' || $driverName == 'mssql' || $driverName == 'odbc') {
             // [OV14] remember added columns to avoid duplicates + little refactor for optimization
             // Remove identifier quoting if it exists
-            $callback = create_function('$e', 'return trim($e, \'[]`"\');');
+            // [OV22] Replace deprecated create_function with an anonymous function
+            $callback = function($e) { return trim($e, '[]`"'); };
             $added = array();
 
             foreach ($this->_sqlParts['orderby'] as $part) {
@@ -1911,7 +1912,8 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
         $componentAlias = key($this->_queryComponents);
         $mainTableAlias = $this->getSqlTableAlias($componentAlias);
         // [OV14] Remove identifier quoting if it exists
-        $callback = create_function('$e', 'return trim($e, \'[]`"\');');
+        // [OV22] Replace deprecated create_function with an anonymous function
+        $callback = function($e) { return trim($e, '[]`"'); };
         foreach ($this->_sqlParts['orderby'] as $part) {
             $part = trim($part);
             $e = $this->_tokenizer->bracketExplode($part, ' ');

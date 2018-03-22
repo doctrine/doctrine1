@@ -1801,7 +1801,7 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
                 // otherwise limit would be executed after ids are reordered by distinct / group by, and that order cannot be determined.
                 if ($driverName == 'mysql') {
                     // assign an incremented number to each row with id
-                    $subquery = 'SELECT @rownum:=@rownum + 1 as row_number,' 
+                    $subquery = 'SELECT @rownum:=@rownum + 1 as row_number,'
                         . ' doctrine_subquery_rownum_alias.' . $quotedIdentifierColumnName
                         . ' FROM (' . $subquery . ') doctrine_subquery_rownum_alias,'
                         . ' (SELECT @rownum := 0) rownum_var';
@@ -1812,7 +1812,7 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
                         . ' GROUP BY doctrine_subquery_alias.' . $quotedIdentifierColumnName
                         . ' ORDER BY MIN(doctrine_subquery_alias.row_number)';
                 } else {
-                    // [OV21] @todo not sure if it works correctly with other drivers... 
+                    // [OV21] @todo not sure if it works correctly with other drivers...
                     $subquery = 'SELECT DISTINCT doctrine_subquery_alias.' . $quotedIdentifierColumnName
                         . ' FROM (' . $subquery . ') doctrine_subquery_alias';
                 }
@@ -2430,6 +2430,9 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
 
             // We need to do some magic in select fields if the query contain anything in having clause
             $selectFields = $pkFields;
+            // [OV23] wrap count query with another query, if "having" is used not only on expressions,
+            // but on fields as well, and when there is no "group by" in the query
+            $wrap = false;
 
             if ( ! empty($having)) {
                 // For each field defined in select clause
@@ -2444,16 +2447,28 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
                 preg_match_all('/`[a-z0-9_]+`\.`[a-z0-9_]+`/i', $having, $matches, PREG_PATTERN_ORDER);
                 if (count($matches[0]) > 0) {
                     $selectFields .= ', ' . implode(', ', array_unique($matches[0]));
+                    // [OV23]
+                    if (empty($groupby)) $wrap = true;
                 }
             }
 
             // If we do not have a custom group by, apply the default one
-            if (empty($groupby)) {
+            // if (empty($groupby)) {
+            // [OV23]
+            if (empty($groupby) && !$wrap) {
                 $groupby = ' GROUP BY ' . $pkFields;
             }
 
+            // [OV23]
+            if ($wrap) {
+                $q .= '(SELECT DISTINCT ' . str_replace($ta, $this->_conn->quoteIdentifier('dctrn_count_query'), $pkFields) . ' FROM ';
+            }
             $q .= '(SELECT ' . $selectFields . ' FROM ' . $from . $where . $groupby . $having . ') '
                 . $this->_conn->quoteIdentifier('dctrn_count_query');
+            // [OV23]
+            if ($wrap) {
+                $q .= ') ' . $this->_conn->quoteIdentifier('dctrn_count_query_wrap');
+            }
         }
 
         // [OV13]

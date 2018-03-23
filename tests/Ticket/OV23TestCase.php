@@ -33,7 +33,37 @@
  * @since       1.0
  * @version     $Revision$
  */
-class Doctrine_Ticket_OV19_TestCase extends Doctrine_UnitTestCase
+class Doctrine_Ticket_OV23_TestCase extends Doctrine_UnitTestCase
 {
-    // @todo
+    public function testCountQueryWithHaving()
+    {
+        // Change the quote identifier, this only works with quote identifier enabled, otherwise complex count queries + join + having will silently fail
+        // moreover it only works for identifier quoted with backticks i.e. mysql-style
+        // that's because there is a following regex pattern used '/`[a-z0-9_]+`\.`[a-z0-9_]+`/i'
+        // in getCountSqlQuery :(
+        $dbh = new Doctrine_Adapter_Mock('mysql');
+        $conn = $this->manager->openConnection($dbh);
+        $conn->setAttribute(Doctrine_Core::ATTR_QUOTE_IDENTIFIER, true);
+
+        $q = Doctrine_Query::create($conn)
+            ->from('User u')
+            ->select('u.*, p.*')
+            ->addSelect('COALESCE(u.name, u.loginname) AS player_name')
+            ->leftJoin('u.Phonenumber p')
+            ->having('player_name = ? OR p.phonenumber = ?', array('test', 'test'));
+
+        $this->assertEqual($q->getCountSqlQuery(),
+            'SELECT COUNT(*) AS `num_results` FROM ('
+                .'SELECT DISTINCT `dctrn_count_query`.`id` FROM ('
+                    .'SELECT `e`.`id`, COALESCE(`e`.`name`, `e`.`loginname`) AS `e__0`, `p`.`phonenumber` '
+                    .'FROM `entity` `e` LEFT JOIN `phonenumber` `p` ON `e`.`id` = `p`.`entity_id` '
+                    .'WHERE (`e`.`type` = 0) '
+                    .'HAVING (`e__0` = ? OR `p`.`phonenumber` = ?)'
+                .') `dctrn_count_query`'
+            .') `dctrn_count_query_wrap`');
+
+        // close connection
+        $this->manager->closeConnection($conn);
+    }
+
 }

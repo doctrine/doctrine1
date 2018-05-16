@@ -116,6 +116,11 @@ class Doctrine_Event
     protected $_options = array();
 
     /**
+     * @var array $_backtrace           an array of backtrace
+     */
+    protected $_backtrace = array();
+
+    /**
      * constructor
      *
      * @param Doctrine_Connection|Doctrine_Connection_Statement|
@@ -130,6 +135,22 @@ class Doctrine_Event
         $this->_code     = $code;
         $this->_query    = $query;
         $this->_params   = $params;
+        
+        // for ZFE
+        $config = Zend_Registry::get('config');
+        if ($config->doctrine->backtrace) {
+            $this->_backtrace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
+        }
+    }
+    
+    /**
+     * getBacktrace
+     * 
+     * @return array       returns the backtrace
+     */
+    public function getBacktrace()
+    {
+        return $this->_backtrace;
     }
 
     /**

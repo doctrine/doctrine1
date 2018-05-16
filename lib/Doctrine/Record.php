@@ -160,6 +160,13 @@ abstract class Doctrine_Record extends Doctrine_Record_Abstract implements Count
     protected $_pendingUnlinks = array();
 
     /**
+     * Array of pending links in format alias => keys to be executed after save
+     *
+     * @var array $_pendingLinks
+     */
+    protected $_pendingLinks = array();
+
+    /**
      * Array of custom accessors for cache
      *
      * @var array
@@ -1700,6 +1707,26 @@ abstract class Doctrine_Record extends Doctrine_Record_Abstract implements Count
     }
 
     /**
+     * returns Doctrine_Record instances which need to be linked (inserted the relation) on save
+     *
+     * @return array $pendingLinks
+     */
+    public function getPendingLinks()
+    {
+        return $this->_pendingLinks;
+    }
+
+    /**
+     * resets pending record links
+     *
+     * @return void
+     */
+    public function resetPendingLinks()
+    {
+        $this->_pendingLinks = array();
+    }
+
+    /**
      * applies the changes made to this object into database
      * this method is smart enough to know if any changes are made
      * and whether to use INSERT or UPDATE statement
@@ -2456,6 +2483,9 @@ abstract class Doctrine_Record extends Doctrine_Record_Abstract implements Count
                 $ids = $allIds;
             }
             foreach ($ids as $id) {
+                if (isset($this->_pendingLinks[$alias][$id])) {
+                    unset($this->_pendingLinks[$alias][$id]);
+                }
                 $this->_pendingUnlinks[$alias][$id] = true;
             }
             return $this;
@@ -2538,6 +2568,7 @@ abstract class Doctrine_Record extends Doctrine_Record_Abstract implements Count
                 if (isset($this->_pendingUnlinks[$alias][$id])) {
                     unset($this->_pendingUnlinks[$alias][$id]);
                 }
+                $this->_pendingLinks[$alias][$id] = true;
             }
 
             return $this;

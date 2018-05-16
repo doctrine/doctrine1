@@ -44,6 +44,16 @@ class Doctrine_Relation_Nest extends Doctrine_Relation_Association
 
             $assocTable = $this->getAssociationFactory()->getTableName();
             $tableName  = $record->getTable()->getTableName();
+            
+            // Removing schema name from table names (MySQL Nest Relations fix)
+            function removeSchemaFromTable($tableName) {
+                $e = explode('.', $tableName);
+                if (isset($e[1])) return $e[1];
+                return $e[0];
+            }
+    	    $assocTable = removeSchemaFromTable($assocTable);
+            $tableName = removeSchemaFromTable($tableName);
+            
             $identifierColumnNames = $record->getTable()->getIdentifierColumnNames();
             $identifier = $formatter->quoteIdentifier(array_pop($identifierColumnNames));
 

@@ -698,8 +698,9 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
 
                 // Fix for http://www.doctrine-project.org/jira/browse/DC-585
                 // Add selected columns to pending fields
-                if (preg_match('/^([^\(]+)\.(\'?)(.*?)(\'?)$/', $expression, $field)) {
-                    $this->_pendingFields[$componentAlias][$alias] = $field[3];
+                // [OV-24] fix these quote-matching regexps again
+                if (preg_match('/^([^\(]+)\.[\'`]?(.*?)[\'`]?$/', $expression, $field)) {
+                    $this->_pendingFields[$componentAlias][$alias] = $field[2];
                 }
 
                 // [OV17] remember sql dependences

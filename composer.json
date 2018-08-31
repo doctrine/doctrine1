@@ -1,8 +1,13 @@
 {
     "name": "doctrine/doctrine1",
     "type": "library",
-    "description": "PHP5 Database ORM",
-    "keywords": ["orm", "database"],
+    "description": "PHP 5 Doctrine1 Object Relational Mapper (ORM)",
+    "keywords": [
+        "php",
+        "doctrine1",
+        "orm",
+        "database"
+    ],
     "homepage": "http://www.doctrine-project.org",
     "license": "LGPL",
     "authors": [

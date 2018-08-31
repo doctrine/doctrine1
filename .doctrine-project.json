@@ -1,0 +1,21 @@
+{
+    "active": false,
+    "archived": true,
+    "name": "Doctrine1 ORM",
+    "shortName": "Doctrine1",
+    "slug": "doctrine1",
+    "docsSlug": "doctrine1",
+    "docsRepositoryName": "doctrine1-documentation",
+    "docsPath": "/source",
+    "versions": [
+        {
+            "name": "master",
+            "branchName": "master",
+            "slug": "latest",
+            "aliases": [
+                "current",
+                "stable"
+            ]
+        }
+    ]
+}

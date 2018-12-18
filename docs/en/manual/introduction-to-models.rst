@@ -1,0 +1,556 @@
+..  vim: set ts=4 sw=4 tw=79 :
+
+**********************
+Introduction to Models
+**********************
+
+============
+Introduction
+============
+
+At the lowest level, Doctrine represents your database schema with a set of PHP
+classes. These classes define the schema and behavior of your model.
+
+A basic model that represents a user in a web application might look something
+like this::
+
+    class User extends Doctrine_Record
+    {
+        public function setTableDefinition()
+        {
+            $this->hasColumn('username', 'string', 255);
+            $this->hasColumn('password', 'string', 255);
+        }
+
+        public function setUp()
+        {
+            $this->actAs('Timestampable');
+        }
+    }
+
+.. note::
+
+    We aren't actually going to use the above class definition, it is only
+    meant to be an example. We will generate our first class definition from an
+    existing database table later in this chapter.
+
+Each :php:class:`Doctrine_Record` child class can have a
+:php:meth:`setTableDefinition` and :php:meth:`setUp` method. The
+:php:meth:`setTableDefinition` method is for defining columns, indexes and
+other information about the schema of tables. The :php:meth:`setUp` method is
+for attaching behaviors and defining relationships between
+:php:class:`Doctrine_Record` child classes. In the above example we are
+enabling the Timestampable behavior which adds some automagic functionality.
+You will learn more about what all can be used in these functions in the
+:doc:`defining-models` chapter.
+
+=================
+Generating Models
+=================
+
+Doctrine offers ways to generate these classes to make it easier to get started
+using Doctrine.
+
+.. note::
+
+    Generating from existing databases is only meant to be a convenience for
+    getting started. After you generate from the database you will have to tweak it
+    and clean things up as needed.
+
+------------------
+Existing Databases
+------------------
+
+A common case when looking for ORM tools like Doctrine is that the database and
+the code that access it is growing large/complex. A more substantial tool is
+needed than manual SQL code.
+
+Doctrine has support for generating :php:class:`Doctrine_Record` classes from
+your existing database. There is no need for you to manually write all the
+:php:class:`Doctrine_Record` classes for your domain model.
+
+^^^^^^^^^^^^^^^^^^^^^^^
+Making the first import
+^^^^^^^^^^^^^^^^^^^^^^^
+
+Let's consider we have a mysql database called ``doctrine_test`` with a single
+table named ``user``. The ``user`` table has been created with the following
+sql statement:
+
+.. code-block:: mysql
+
+    CREATE TABLE user (
+        id BIGINT(20) NOT NULL AUTO_INCREMENT,
+        first_name VARCHAR(255) DEFAULT NULL,
+        last_name VARCHAR(255) DEFAULT NULL,
+        username VARCHAR(255) DEFAULT NULL,
+        password VARCHAR(255) DEFAULT NULL,
+        type VARCHAR(255) DEFAULT NULL,
+        is_active TINYINT(1) DEFAULT '1',
+        is_super_admin TINYINT(1) DEFAULT '0',
+        created_at TIMESTAMP,
+        updated_at TIMESTAMP,
+        PRIMARY KEY (id)
+    ) ENGINE=InnoDB
+
+Now we would like to convert it into :php:class:`Doctrine_Record` class. With
+Doctrine this is easy! Remember our test script we created in the
+:doc:`getting-started` chapter? We're going to use that generate our models.
+
+First we need to modify our ``bootstrap.php`` to use the MySQL database
+instead of sqlite memory::
+
+    // bootstrap.php
+    $conn = Doctrine_Manager::connection('mysql://root:mys3cr3et@localhost/doctrinetest', 'doctrine');
+
+.. note::
+
+    You can use the :php:meth:`$conn->createDatabase` method to create the
+    database if it does not already exist and the connected user has permission to
+    create databases. Then use the above provided ``CREATE TABLE`` statement to
+    create the table.
+
+Now we need a place to store our generated classes so lets create a directory
+named ``models`` in the ``doctrine_test`` directory:
+
+.. code-block:: sh
+
+    mkdir doctrine_test/models
+
+Now we just need to add the code to our ``test.php`` script to generate the
+model classes::
+
+    // test.php
+    Doctrine_Core::generateModelsFromDb(
+        'models',
+        array('doctrine'),
+        array('generateTableClasses' => true)
+    );
+
+.. note::
+
+    The ``generateModelsFromDb`` method only requires one parameter and it is
+    the import directory (the directory where the generated record files will be
+    written to). The second argument is an array of database connection names to
+    generate models for, and the third is the array of options to use for the model
+    building.
+
+That's it! Now there should be a file called ``BaseUser.php`` in your
+``doctrine_test/models/generated`` directory. The file should look like the
+following::
+
+    // models/generated/BaseUser.php
+    /**
+     * This class has been auto-generated by the Doctrine ORM Framework
+     */
+    abstract class BaseUser extends Doctrine_Record
+    {
+        public function setTableDefinition()
+        {
+            $this->setTableName('user');
+            $this->hasColumn(
+                'id', 'integer', 8,
+                array(
+                    'type' => 'integer',
+                    'length' => 8,
+                    'primary' => true,
+                    'autoincrement' => true
+                )
+            );
+            $this->hasColumn(
+                'first_name', 'string', 255,
+                array(
+                    'type' => 'string',
+                    'length' => 255
+                )
+            );
+            $this->hasColumn(
+                'last_name', 'string', 255,
+                array(
+                    'type' => 'string',
+                    'length' => 255
+                )
+            );
+            $this->hasColumn(
+                'username', 'string', 255,
+                array(
+                    'type' => 'string',
+                    'length' => 255
+                )
+            );
+            $this->hasColumn(
+                'password', 'string', 255,
+                array(
+                    'type' => 'string',
+                    'length' => 255
+                )
+            );
+            $this->hasColumn(
+                'type', 'string', 255,
+                array(
+                    'type' => 'string',
+                    'length' => 255
+                )
+            );
+            $this->hasColumn(
+                'is_active', 'integer', 1,
+                array(
+                    'type' => 'integer',
+                    'length' => 1,
+                    'default' => '1'
+                )
+            );
+            $this->hasColumn(
+                'is_super_admin', 'integer', 1,
+                array(
+                    'type' => 'integer',
+                    'length' => 1,
+                    'default' => '0'
+                )
+            );
+            $this->hasColumn(
+                'created_at', 'timestamp', null,
+                array(
+                    'type' => 'timestamp',
+                    'notnull' => true
+                )
+            );
+            $this->hasColumn(
+                'updated_at', 'timestamp', null,
+                array(
+                    'type' => 'timestamp',
+                    'notnull' => true
+                )
+            );
+        }
+    }
+
+You should also have a file called ``User.php`` in your
+``doctrine_test/models`` directory. The file should look like the following::
+
+    // models/User.php
+    /**
+     * This class has been auto-generated by the Doctrine ORM Framework
+     */
+    class User extends BaseUser
+    {
+    }
+
+Doctrine will automatically generate a skeleton :php:class:`Doctrine_Table`
+class for the model at ``doctrine_test/models/UserTable.php`` because we passed
+the option ``generateTableClasses`` with a value of ``true``.  The file should
+look like the following::
+
+    // models/UserTable.php
+    /**
+     * This class has been auto-generated by the Doctrine ORM Framework
+     */
+    class UserTable extends Doctrine_Table
+    {
+    }
+
+You can place custom functions inside the ``User`` and ``UserTable``
+classes to customize the functionality of your models. Below are some
+examples::
+
+    // models/User.php
+    class User extends BaseUser
+    {
+        public function setPassword($password)
+        {
+            return $this->_set('password', md5($password));
+        }
+    }
+
+In order for the above ``password`` accessor overriding to work properly
+you must enabled the ``auto_accessor_override`` attribute in your
+``bootstrap.php`` file like done below::
+
+    // bootstrap.php
+    $manager->setAttribute(Doctrine_Core::ATTR_AUTO_ACCESSOR_OVERRIDE, true);
+
+Now when you try and set a users password it will be md5 encrypted.
+First we need to modify our ``bootstrap.php`` file to include some code
+for autoloading our models from the ``models`` directory::
+
+    // bootstrap.php
+    Doctrine_Core::loadModels('models');
+
+.. note::
+
+    The model loading is fully explained later in the :ref:`autoloading-models` section of this chapter.
+
+Now we can modify ``test.php`` to include some code which will test the changes
+we made to the ``User`` model::
+
+    // test.php
+    $user = new User();
+    $user->username = 'jwage';
+    $user->password = 'changeme';
+
+    echo $user->password; // outputs md5 hash and not changeme
+
+Now when you execute ``test.php`` from your terminal you should see the
+following:
+
+.. code-block:: sh
+
+    php test.php 4cb9c8a8048fd02294477fcb1a41191a
+
+Here is an example of some custom functions you might add to the ``UserTable``
+class::
+
+    // models/UserTable.php
+    class UserTable extends Doctrine_Table
+    {
+        public function getCreatedToday()
+        {
+            $today = date('Y-m-d h:i:s', strtotime(date('Y-m-d')));
+            return $this->createQuery('u')
+                ->where('u.created_at > ?', $today)
+                ->execute();
+        }
+    }
+
+In order for custom :php:class:`Doctrine_Table` classes to be loaded you must
+enable the ``autoload_table_classes`` attribute in your ``bootstrap.php`` file
+like done below::
+
+    // bootstrap.php
+    $manager->setAttribute(Doctrine_Core::ATTR_AUTOLOAD_TABLE_CLASSES, true);
+
+Now you have access to this function when you are working with the
+``UserTable`` instance::
+
+    // test.php
+    $usersCreatedToday = Doctrine_Core::getTable('User')->getCreatedToday();
+
+------------
+Schema Files
+------------
+
+You can alternatively manage your models with YAML schema files and
+generate PHP classes from them. First lets generate a YAML schema file
+from the existing models we already have to make things easier. Change
+``test.php`` to have the following code inside::
+
+    // test.php
+    Doctrine_Core::generateYamlFromModels('schema.yml', 'models');
+
+Execute the ``test.php`` script:
+
+.. code-block:: sh
+
+    php test.php
+
+Now you should see a file named ``schema.yml`` created in the root of
+the ``doctrine_test`` directory. It should look like the following:
+
+.. code-block:: yaml
+
+    User:
+    tableName: user
+    columns:
+      id:
+        type: integer(8)
+        primary: true
+        autoincrement: true
+      is_active:
+        type: integer(1)
+        default: '1'
+      is_super_admin:
+        type: integer(1)
+        default: '0'
+      created_at:
+        type: timestamp(25)
+        notnull: true
+      updated_at:
+        type: timestamp(25)
+        notnull: true
+      first_name: string(255)
+      last_name: string(255)
+      username: string(255)
+      password: string(255)
+      type: string(255)
+
+So now that we have a valid YAML schema file, we can now maintain our schema
+from here and generate the PHP classes from here. Lets create a new php script
+called ``generate.php``. This script will re-generate everything and make sure
+the database is reinstantiated each time the script is called::
+
+    // generate.php
+    require_once('bootstrap.php');
+
+    Doctrine_Core::dropDatabases(); Doctrine_Core::createDatabases();
+    Doctrine_Core::generateModelsFromYaml('schema.yml', 'models');
+    Doctrine_Core::createTablesFromModels('models');
+
+Now you can alter your ``schema.yml`` and re-generate your models by
+running the following command from your terminal:
+
+.. code-block:: sh
+
+    php generate.php
+
+Now that we have our YAML schema file setup and we can re-generate our
+models from the schema files lets cleanup the file a little and take
+advantage of some of the power of Doctrine:
+
+.. code-block:: yaml
+
+    User:
+    actAs: [Timestampable]
+    columns:
+      is_active:
+        type: integer(1)
+        default: '1'
+      is_super_admin:
+        type: integer(1)
+        default: '0'
+      first_name: string(255)
+      last_name: string(255)
+      username: string(255)
+      password: string(255)
+      type: string(255)
+
+.. note::
+
+    **Notice some of the changes we made:**
+
+    #. Removed the explicit ``tableName`` definition as it will default to user.
+    #. Attached the ``Timestampable`` behavior.
+    #. Removed ``id`` column as it is automatically added if no primary key is defined.
+    #. Removed ``updated_at`` and ``created_at`` columns as they can be handled automatically by the ``Timestampable`` behavior.
+
+    Now look how much cleaner the YAML is and is because we take advantage of
+    defaults and utilize core behaviors it is much less work we have to do
+    ourselves.
+
+Now re-generate your models from the YAML schema file:
+
+.. code-block:: sh
+
+    php generate.php
+
+You can learn more about YAML Schema Files in its :doc:`dedicated chapter <yaml-schema-files>`.
+
+=======================
+Manually Writing Models
+=======================
+
+You can optionally skip all the convenience methods and write your
+models manually using nothing but your own PHP code. You can learn all
+about the models syntax in the :doc:`defining-models` chapter.
+
+.. _autoloading-models:
+
+==================
+Autoloading Models
+==================
+
+Doctrine offers two ways of loading models. We have conservative (lazy)
+loading, and aggressive loading. Conservative loading will not require the PHP
+file initially, instead it will cache the path to the class name and this path
+is then used in the :php:meth:`Doctrine_Core::modelsAutoload`.
+
+To use Doctrine model loading you need to register the model autoloader in your
+bootstrap::
+
+    // bootstrap.php
+    spl_autoload_register(array('Doctrine_Core', 'modelsAutoload'));
+
+Below are some examples using the both types of model loading.
+
+------------
+Conservative
+------------
+
+Conservative model loading is going to be the ideal model loading method for a
+production environment. This method will lazy load all of the models instead of
+loading them all when model loading is executed.
+
+Conservative model loading requires that each file contain only one class, and
+the file must be named after the class. For example, if you have a class named
+``User``, it must be contained in a file named :file:`User.php`.
+
+To use conservative model loading we need to set the model loading
+attribute to be conservative::
+
+    $manager->setAttribute(Doctrine_Core::ATTR_MODEL_LOADING, Doctrine_Core::MODEL_LOADING_CONSERVATIVE);
+
+.. note::
+
+    We already made this change in an earlier step in the ``bootstrap.php``
+    file so you don't need to make this change again.
+
+When we use the :php:meth:`Doctrine_Core::loadModels` functionality all found
+classes will be cached internally so the autoloader can require them later::
+
+    Doctrine_Core::loadModels('models');
+
+Now when we instantiate a new class, for example a ``User`` class, the
+autoloader will be triggered and the class is required::
+
+    // triggers call to Doctrine_Core::modelsAutoload() and the class is included
+    $user = new User();
+
+Instantiating the class above triggers a call to
+:php:meth:`Doctrine_Core::modelsAutoload` and the class that was found in the
+call to :php:meth:`Doctrine_Core::loadModels` will be required and made
+available.
+
+.. note::
+
+    Conservative model loading is recommended in most cases,
+    specifically for production environments as you do not want to
+    require every single model class even when it is not needed as this
+    is unnecessary overhead. You only want to require it when it is
+    needed.
+
+----------
+Aggressive
+----------
+
+Aggressive model loading is the default model loading method and is very
+simple, it will look for all files with a ``.php`` extension and will include
+it. Doctrine can not satisfy any inheritance and if your models extend another
+model, it cannot include them in the correct order so it is up to you to make
+sure all dependencies are satisfied in each class.
+
+With aggressive model loading you can have multiple classes per file and
+the file name is not required to be related to the name of the class
+inside of the file.
+
+The downside of aggressive model loading is that every php file is
+included in every request, so if you have lots of models it is
+recommended you use conservative model loading.
+
+To use aggressive model loading we need to set the model loading
+attribute to be aggressive::
+
+    $manager->setAttribute(Doctrine_Core::ATTR_MODEL_LOADING, Doctrine_Core::MODEL_LOADING_AGGRESSIVE);
+
+.. tip::
+
+    Aggressive is the default of the model loading attribute so
+    explicitly setting it is not necessary if you wish to use it.
+
+When we use the :php:meth:`Doctrine_Core::loadModels` functionality all the
+classes found will be included right away::
+
+    Doctrine_Core::loadModels('/path/to/models');
+
+==========
+Conclusion
+==========
+
+This chapter is probably the most intense chapter so far but it is a good one.
+We learned a little about how to use models, how to generate models from
+existing databases, how to write our own models, and how to maintain our models
+as YAML schema files. We also modified our Doctrine test environment to
+implement some functionality for loading models from our models directory.
+
+This topic of Doctrine models is so large that it warranted the chapters being
+split in to three pieces to make it easier on the developer to absorb all the
+information. In :doc:`defining-models` we will really get in to the API we use
+to define our models.

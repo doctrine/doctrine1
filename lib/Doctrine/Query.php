@@ -1306,7 +1306,9 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
 
             // [OV10] params duplicates for subquery should be inserted in correct place in params array.
             // count occurrences of '?' character before subquery (which are not in quotes nor double quotes)
-            $queryBeforeSubquery = substr($query, 0, strpos($query, $this->_limitSubquerySql));
+            $queryBeforeSubquery = $this->_limitSubquerySql ?
+            	substr($query, 0, strpos($query, $this->_limitSubquerySql))
+            	: $query;
             // remove quoted or double-quoted parts
             $queryBeforeSubquery = preg_replace('/\"[^"]*\"|\'[^\']*\'/', '', $queryBeforeSubquery);
             $count = substr_count($queryBeforeSubquery, '?');

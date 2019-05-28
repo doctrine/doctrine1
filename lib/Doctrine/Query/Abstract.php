@@ -2504,7 +2504,7 @@ abstract class Doctrine_Query_Abstract
         if(null !== $sqlParts) {
             if(count($sqlParts) > 1) {
                 // set empty arrays for parts which do not have dependences
-                $dependences = array_replace(array_fill_keys($sqlParts, []), $dependences);
+                $dependences = array_replace(array_fill_keys($sqlParts, array()), $dependences);
             } else {
                 $dependences = array_shift($dependences);
             }

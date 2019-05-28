@@ -1,2 +1,4 @@
 tests/DoctrineTest/doctrine_tests/*
 .idea
+composer.lock
+vendor

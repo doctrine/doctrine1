@@ -1,5 +1,5 @@
 {
-    "name": "doctrine/doctrine1",
+    "name": "ovos/doctrine1",
     "type": "library",
     "description": "PHP 5 Doctrine1 Object Relational Mapper (ORM)",
     "keywords": [
@@ -14,11 +14,30 @@
         {"name": "Konsta Vesterinen", "email": "kvesteri@cc.hut.fi"},
         {"name": "Jonathan Wage", "email": "jonwage@gmail.com"}
     ],
+    "replace": {
+        "doctrine/doctrine1": "*"
+    },
     "require": {
-        "php": ">=5.2.3",
+        "php": ">=5.3.3",
         "ext-pdo": "*"
     },
     "autoload": {
-        "psr-0": { "Doctrine_": "lib/" }
+        "psr-0": {
+            "Doctrine_": "lib/"
+        },
+        "classmap": [
+            "lib/Doctrine.php"
+        ]
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-master": "1.3-dev"
+        }
+    },
+    "archive": {
+        "exclude": ["/docs", "/tests", "/tools"]
+    },
+    "scripts": {
+        "test": "@php ./tests/run.php"
     }
 }

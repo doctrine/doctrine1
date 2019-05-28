@@ -1,0 +1,19 @@
+; Many editors are supported by default,
+; for others please refer to: http://editorconfig.org/
+; PHPStorm plugin: https://plugins.jetbrains.com/plugin/7294
+
+; top-most EditorConfig file
+root = true
+
+[*]
+charset = utf-8
+
+[*.yml]
+end_of_line = lf
+indent_size = 2
+indent_style = space
+
+[*.{php,json}]
+end_of_line = lf
+indent_size = 4
+indent_style = space

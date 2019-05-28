@@ -1,6 +1,8 @@
 Doctrine 1
 ==========
 
+[![Build Status](https://travis-ci.com/ovos/doctrine1.svg?branch=master)](https://travis-ci.com/ovos/doctrine1)
+
 This is a fork of [doctrine/doctrine1](https://github.com/doctrine/doctrine1), adjusted for compatibility with php 5.3-7.3
 and mysql 5.7. Tested only with mysql.
 

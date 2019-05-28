@@ -91,7 +91,8 @@ class Doctrine_Query_Update_TestCase extends Doctrine_UnitTestCase
         $q = new Doctrine_Query();
         $q->update('User u')->set('u.name', "CONCAT(?, CONCAT(':', SUBSTRING(u.name, LOCATE(':', u.name)+1, LENGTH(u.name) - LOCATE(':', u.name)+1)))", array('gblanco'))
               ->where('u.id IN (SELECT u2.id FROM User u2 WHERE u2.name = ?) AND u.email_id = ?', array('guilhermeblanco', 5));
-        $this->assertEqual($q->getSqlQuery(), "UPDATE entity SET name = CONCAT(?, CONCAT(':', SUBSTRING(name, LOCATE(':', name)+1, LENGTH(name) - LOCATE(':', name)+1))) WHERE (id IN (SELECT e2.id AS e2__id FROM entity e2 WHERE (e2.name = ? AND (e2.type = 0))) AND email_id = ?) AND (type = 0)");
+        // [OV16] fixed function name mapping in sqlite - SUBSTRING -> SUBSTR
+        $this->assertEqual($q->getSqlQuery(), "UPDATE entity SET name = CONCAT(?, CONCAT(':', SUBSTR(name, LOCATE(':', name)+1, LENGTH(name) - LOCATE(':', name)+1))) WHERE (id IN (SELECT e2.id AS e2__id FROM entity e2 WHERE (e2.name = ? AND (e2.type = 0))) AND email_id = ?) AND (type = 0)");
     }
     public function testUpdateSupportsNullSetting()
     {

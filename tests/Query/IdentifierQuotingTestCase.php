@@ -25,6 +25,8 @@
  * This test case is used for testing DQL API quotes all identifiers properly
  * if idenfitier quoting is turned on
  *
+ * [OV16] fixed sql function names - LOWERCASE -> LOWER, UPPERCASE -> UPPER
+ *
  * @package     Doctrine
  * @author      Konsta Vesterinen <kvesteri@cc.hut.fi>
  * @license     http://www.opensource.org/licenses/lgpl-license.php LGPL
@@ -130,36 +132,36 @@ class Doctrine_Query_IdentifierQuoting_TestCase extends Doctrine_UnitTestCase
     {
         $q = new Doctrine_Query();
 
-        $q->update('User')->set('name', 'LOWERCASE(name)')->where('id = ?');
+        $q->update('User')->set('name', 'LOWER(name)')->where('id = ?');
         
-        $this->assertEqual($q->getSqlQuery(), 'UPDATE "entity" SET "name" = LOWERCASE("name") WHERE ("id" = ? AND ("type" = 0))');
+        $this->assertEqual($q->getSqlQuery(), 'UPDATE "entity" SET "name" = LOWER("name") WHERE ("id" = ? AND ("type" = 0))');
     }
 
     public function testUpdateQuerySupportsIdentifierQuoting4()
     {
         $q = new Doctrine_Query();
 
-        $q->update('User u')->set('u.name', 'LOWERCASE(u.name)')->where('u.id = ?');
+        $q->update('User u')->set('u.name', 'LOWER(u.name)')->where('u.id = ?');
         
-        $this->assertEqual($q->getSqlQuery(), 'UPDATE "entity" SET "name" = LOWERCASE("name") WHERE ("id" = ? AND ("type" = 0))');
+        $this->assertEqual($q->getSqlQuery(), 'UPDATE "entity" SET "name" = LOWER("name") WHERE ("id" = ? AND ("type" = 0))');
     }
 
     public function testUpdateQuerySupportsIdentifierQuoting5()
     {
         $q = new Doctrine_Query();
 
-        $q->update('User u')->set('u.name', 'UPPERCASE(LOWERCASE(u.name))')->where('u.id = ?');
+        $q->update('User u')->set('u.name', 'UPPER(LOWER(u.name))')->where('u.id = ?');
         
-        $this->assertEqual($q->getSqlQuery(), 'UPDATE "entity" SET "name" = UPPERCASE(LOWERCASE("name")) WHERE ("id" = ? AND ("type" = 0))');
+        $this->assertEqual($q->getSqlQuery(), 'UPDATE "entity" SET "name" = UPPER(LOWER("name")) WHERE ("id" = ? AND ("type" = 0))');
     }
 
     public function testUpdateQuerySupportsIdentifierQuoting6()
     {
         $q = new Doctrine_Query();
 
-        $q->update('User u')->set('u.name', 'UPPERCASE(LOWERCASE(u.id))')->where('u.id = ?');
+        $q->update('User u')->set('u.name', 'UPPER(LOWER(u.id))')->where('u.id = ?');
         
-        $this->assertEqual($q->getSqlQuery(), 'UPDATE "entity" SET "name" = UPPERCASE(LOWERCASE("id")) WHERE ("id" = ? AND ("type" = 0))');
+        $this->assertEqual($q->getSqlQuery(), 'UPDATE "entity" SET "name" = UPPER(LOWER("id")) WHERE ("id" = ? AND ("type" = 0))');
     }
 
     public function testUpdateQuerySupportsIdentifierQuoting7()

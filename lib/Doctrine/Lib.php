@@ -266,6 +266,43 @@ class Doctrine_Lib
                 return call_user_func_array(array('Doctrine_Lib', 'arrayDeepMerge'), $args);
             break;
         }
+     }
+
+    // Code from symfony sfToolkit class. See LICENSE
+    // code from cto at verylastroom dot com
+    /**
+     * arrayDiffSimple 
+     * 
+     * array arrayDiffSimple ( array array1 , array array2 )
+     *
+     * Like array_diff
+     *
+     * arrayDiffSimple() has exactly the same behavior than array_diff, but can handle
+     * only 2 arrays. PHP versions > 5.4.0 generate some NOTICE if you use array_diff
+     * sometimes because of array_diff internal behavior with (string) casts.
+     * This method solves the problem.
+     *
+     * @param array $array1 
+     * @param array $array2 
+     * @static
+     * @access public
+     * @return array
+     */
+    public static function arrayDiffSimple($array1, $array2)
+    {
+        $diff = array();
+
+        foreach($array1 as $key => $val) {
+            if(!isset($array2[$key])) {
+                $diff[$key] = $val;
+            } else {
+                if(is_array($array2[$key]) && !is_array($val)) {
+                    $diff[$key] = $val;
+                }
+            }
+        }
+
+        return $diff;
     }
 
     /**
@@ -385,4 +422,46 @@ class Doctrine_Lib
 
         return true;
     }
+
+    /**
+     * Get offsets of "?" placeholders in an sql string
+     *
+     * @param string $sql
+     * @param int $maxIndex do not check beyond this placeholder occurrence
+     * @return array
+     */
+    public static function getPlaceholderOffsets($sql, $maxIndex = null)
+    {
+        $paramsPos = array();
+        $index = 0;
+        for($i = 0, $l = strlen($sql); $i < $l; $i++) {
+            $char = $sql[$i];
+            if($char === "'" || $char === '"') {
+                // find closing quote
+                do {
+                    $next = strpos(substr($sql, $i + 1), $char);
+                    if($next !== false) {
+                        $next += $i + 1; // add current offset
+                        if($next > 0 && $sql[$next - 1] === '\\') { // escaped quote, find next one
+                            $i = $next;
+                            $next = -1;
+                        }
+                    }
+                } while ($next === -1);
+
+                if(!$next) break;
+                $i = $next;
+                continue;
+            }
+
+            if($char === '?') {
+                $paramsPos[$index] = $i;
+                $index++;
+                if($maxIndex !== null && $index > $maxIndex) break; // we've got enough
+            }
+        }
+
+        return $paramsPos;
+    }
+
 }

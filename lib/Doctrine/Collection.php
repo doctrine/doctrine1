@@ -158,6 +158,11 @@ class Doctrine_Collection extends Doctrine_Access implements Countable, Iterator
         unset($vars['expanded']);
         unset($vars['generator']);
 
+        // added by mh
+        unset($vars['_snapshot']); // losing functionality of keeping a state of modified records
+        unset($vars['_locator']);
+        unset($vars['_resources']);
+
         $vars['_table'] = $vars['_table']->getComponentName();
 
         return serialize($vars);
@@ -460,7 +465,7 @@ class Doctrine_Collection extends Doctrine_Access implements Countable, Iterator
             $relations = $this->relation['table']->getRelations();
             foreach ($relations as $relation) {
                 if ($this->relation['class'] == $relation['localTable']->getOption('name') && $relation->getLocal() == $this->relation->getForeignFieldName()) {
-                    $record->$relation['alias'] = $this->reference;
+                    $record->{$relation['alias']} = $this->reference;
                     break;
                 }
             }
@@ -531,6 +536,7 @@ class Doctrine_Collection extends Doctrine_Access implements Countable, Iterator
         $query = $this->_table->createQuery();
 
         if ( ! isset($name)) {
+            // [OV13] this part until return seems broken
             foreach ($this->data as $record) {
                 $value = $record->getIncremented();
                 if ($value !== null) {
@@ -564,9 +570,12 @@ class Doctrine_Collection extends Doctrine_Access implements Countable, Iterator
             return;
         }
 
-        $dql     = $rel->getRelationDql(count($list), 'collection');
+        // [OV13] it can be optimized now
+        //$dql     = $rel->getRelationDql(count($list), 'collection');
+        //$coll    = $query->query($dql, $list);
 
-        $coll    = $query->query($dql, $list);
+        $dql = $rel->getRelationDql(1, 'collection');
+        $coll    = $query->query($dql, array($list));
 
         $this->populateRelated($name, $coll);
     }
@@ -779,7 +788,10 @@ class Doctrine_Collection extends Doctrine_Access implements Countable, Iterator
      */
     public function fromArray($array, $deep = true)
     {
-        $data = array();
+        if(!is_array($array)) {
+            return;
+        }
+
         foreach ($array as $rowKey => $row) {
             $this[$rowKey]->fromArray($row, $deep);
         }
@@ -871,12 +883,23 @@ class Doctrine_Collection extends Doctrine_Access implements Countable, Iterator
     /**
      * Compares two records. To be used on _snapshot diffs using array_udiff
      *
+	 * @throws Doctrine_Collection_Exception
+	 *
      * @param Doctrine_Record $a 
      * @param Doctrine_Record $b 
      * @return integer
      */
     protected function compareRecords($a, $b)
     {
+    	if(!$a instanceof Doctrine_Record)
+		{
+			throw new Doctrine_Collection_Exception(sprintf('Doctrine_Record expected, %s given.', is_object($a) ? get_class($a) : gettype($a)));
+		}
+    	if(!$b instanceof Doctrine_Record)
+		{
+			throw new Doctrine_Collection_Exception(sprintf('Doctrine_Record expected, %s given.', is_object($b) ? get_class($b) : gettype($b)));
+		}
+
         if ($a->getOid() == $b->getOid()) {
             return 0;
         }
@@ -1066,5 +1089,55 @@ class Doctrine_Collection extends Doctrine_Access implements Countable, Iterator
             } 
         } 
         return $dirty; 
+    }
+
+    // [OV2] added
+    /**
+     * Add a record to the collection silently
+     * i.e. it's also added to the snapshot so it won't appear in getInsertDiff
+     *
+     * @param Doctrine_Record $record
+     * @param string $key
+     * @return bool
+     * @throws Doctrine_Collection_Exception
+     */
+    public function silentAdd($record, $key = null)
+    {
+        $state = $record->state();
+        if($result = $this->add($record, $key)) {
+            if($state == Doctrine_Record::STATE_CLEAN)
+            {
+                // restore clean state on persisted records
+                $record->state($state);
+            }
+
+            if($key === null && isset($this->keyColumn)) {
+                $key = $record->get($this->keyColumn);
+            }
+
+            if(null !== $key) {
+                $this->_snapshot[$key] = $record;
+            } else {
+                $this->_snapshot[] = $record;
+            }
+        }
+        return $result;
+    }
+
+    // [OV2] added
+    /**
+     * Remove a record from the collection silently
+     * i.e. it's also removed from the snapshot so it won't appear in getDeleteDiff
+     *
+     * @param string $key
+     * @return Doctrine_Record
+     */
+    public function silentRemove($key)
+    {
+        $removed = $this->remove($key);
+        if(isset($this->_snapshot[$key]) && $this->compareRecords($removed, $this->_snapshot[$key]) === 0) {
+            unset($this->_snapshot[$key]);
+        }
+        return $removed;
     }
 }

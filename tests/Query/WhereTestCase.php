@@ -109,7 +109,7 @@ class Doctrine_Query_Where_TestCase extends Doctrine_UnitTestCase
         $this->assertEqual($users[1]->name, 'someone.2');
     }
     
-    public function testExceptionIsThrownWhenParameterIsNull()
+    /*public function testExceptionIsThrownWhenParameterIsNull()
     {
        try
        {
@@ -118,6 +118,20 @@ class Doctrine_Query_Where_TestCase extends Doctrine_UnitTestCase
         } catch(Doctrine_Query_Exception $e) {
             $this->pass();
         }
+    }*/
+
+    // [OV13] modified test case
+    public function testExceptionIsNotThrownWhenParameterIsNull()
+    {
+        $count = Doctrine_Query::create()->from('User')->count();
+
+        $q = Doctrine_Query::create()->delete('User')->whereIn('User.id', null);
+        $this->assertEqual($q->getSqlQuery(), 'DELETE FROM entity WHERE (id IN (NULL) AND (type = 0))');
+
+        $q->execute();
+        $countAfterDelete = Doctrine_Query::create()->from('User')->count();
+
+        $this->assertEqual($count, $countAfterDelete);
     }
 
     public function testDirectMultipleParameterSetting2()

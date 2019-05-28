@@ -57,11 +57,17 @@ class Doctrine_Ticket_1622_TestCase extends Doctrine_UnitTestCase
         $child = Doctrine_Core::getTable('Ticket_1622_User')->findOneByName('test');
         
         $user->unlink('children', $child->id);
-        
+
+        // [OV2] because of changes in how link/unlink works, it's no longer necessary to load the whole relation before unlink
+        // reference will be loaded with unlinked records only on request
+        //$this->assertTrue($user->hasReference('children'));
+        //$this->assertTrue($user->hasRelation('children'));
+        $this->assertEqual(count($user->children), 0);
+
+        // [OV2] so moved it here
         $this->assertTrue($user->hasReference('children'));
         $this->assertTrue($user->hasRelation('children'));
-        $this->assertEqual(count($user->children), 0);
-        
+
         $user->save();
 
         $user->refresh();

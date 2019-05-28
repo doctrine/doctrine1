@@ -69,7 +69,7 @@ class Doctrine_Search_File extends Doctrine_Search
      */
     public function indexDirectory($dir)
     {
-        $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir),
+        $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS),
                                                 RecursiveIteratorIterator::LEAVES_ONLY);
                                                 
         foreach ($it as $file) {

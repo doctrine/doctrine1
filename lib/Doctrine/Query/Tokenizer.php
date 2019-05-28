@@ -93,7 +93,7 @@ class Doctrine_Query_Tokenizer
                 break;
             
                 case 'by':
-                    continue;
+                    break;
             
                 default:
                     if ( ! isset($p)) {
@@ -300,6 +300,12 @@ class Doctrine_Query_Tokenizer
     private function getSplitRegExpFromArray(array $d)
     {
         foreach ($d as $key => $string) {
+            //$escapedString = preg_quote($string);
+            // [OV21] trim string before quoting - always wrap a word with non-word characters
+            // to match also e.g. tabs, newlines instead of spaces only when " OR " delimiter is passed
+            if ($string !== ' ') {
+                $string = trim($string);
+            }
             $escapedString = preg_quote($string);
             if (preg_match('#^\w+$#', $string)) {
                 $escapedString = "\W$escapedString\W";

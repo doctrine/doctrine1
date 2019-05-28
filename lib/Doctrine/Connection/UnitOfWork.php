@@ -101,19 +101,28 @@ class Doctrine_Connection_UnitOfWork extends Doctrine_Connection_Module
                     foreach ($record->getPendingDeletes() as $pendingDelete) {
                         $pendingDelete->delete();
                     }
-                
+
+                    // [OV2] added exceptions to unlinks
+                    $pendingUnlinksExcept = $record->getPendingUnlinksExcept();
                     foreach ($record->getPendingUnlinks() as $alias => $ids) {
-                        if ($ids === false) {
-                            $record->unlinkInDb($alias, array());
-                            $aliasesUnlinkInDb[] = $alias;
+                        $exceptIds = isset($pendingUnlinksExcept[$alias]) ? (array)$pendingUnlinksExcept[$alias] : array();
+                        if ($ids === true) { // [OV2] changed false to true - unlink all
+                            $record->unlinkInDb($alias, array(), $exceptIds);
+                            // [OV2] - checking for processDiff not neccessary. unlink uses new silentRemove method
+                            //$aliasesUnlinkInDb[] = $alias;
                         } else if ($ids) {
-                            $record->unlinkInDb($alias, array_keys($ids));
-                            $aliasesUnlinkInDb[] = $alias;
+                            $record->unlinkInDb($alias, array_keys($ids), $exceptIds);
+                            //$aliasesUnlinkInDb[] = $alias;
                         }
                     }
-                    $record->resetPendingUnlinks();
+
+                    // [OV2]
+                    foreach ($record->getPendingLinks() as $alias => $ids) {
+                        $record->linkInDb($alias, array_keys($ids));
+                    }
 
                     $record->invokeSaveHooks('post', 'save', $event);
+
                 } else {
                     $conn->transaction->addInvalid($record);
                 }
@@ -144,6 +153,14 @@ class Doctrine_Connection_UnitOfWork extends Doctrine_Connection_Module
             }
 
             $record->state($state);
+
+            // [OV4] added postRelatedSave hook when all relations are also saved
+            if ($isValid) {
+                $record->invokeSaveHooks('postRelated', 'save', $event);
+
+                // [OV4] move it after postRelatedSave - pendingLinks data should be available in postSave and postRelatedSave hooks
+                $record->resetPendingUnlinks();
+            }
 
             $conn->commit();
         } catch (Exception $e) {
@@ -237,7 +254,7 @@ class Doctrine_Connection_UnitOfWork extends Doctrine_Connection_Module
                 $params = array();
                 $columnNames = array();
                 foreach ($identifierMaps as $idMap) {
-                    while (list($fieldName, $value) = each($idMap)) {
+                    foreach ($idMap as $fieldName => $value) {
                         $params[] = $value;
                         $columnNames[] = $table->getColumnName($fieldName);
                     }

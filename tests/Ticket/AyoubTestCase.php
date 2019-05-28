@@ -49,6 +49,10 @@ class Doctrine_Ticket_Ayoub_TestCase extends Doctrine_UnitTestCase
             $sura->Translation['transliteration']->name = $name;
             $sura->Ticket_Ayoub_Place->Translation['transliteration']->name = $placeName;
             $sura->Ticket_Ayoub_Place->state('TDIRTY');
+
+            // added for DC797 fix - base record state must be changed to dirty if only a property in relation changed, in order to save it
+            $sura->state('TDIRTY');
+
             $sura->save();
             $reopened = Doctrine_Core::getTable('Ticket_Ayoub_Sura')->findOneById($sura->id);
             $this->assertEqual($name, $reopened->Translation['transliteration']->name);

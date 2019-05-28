@@ -113,6 +113,12 @@ abstract class Doctrine_Query_Abstract
      */
     protected $_execParams = array();
 
+    /**
+     * [OV8]
+     * @var current limit subquery generated and used in getSqlQuery method
+     */
+    protected $_limitSubquerySql;
+
     /* Caching properties */
     /**
      * @var Doctrine_Cache_Interface  The cache driver used for caching result sets.
@@ -135,7 +141,8 @@ abstract class Doctrine_Query_Abstract
      * @var Doctrine_Cache_Interface  The cache driver used for caching queries.
      */
     protected $_queryCache;
-    protected $_expireQueryCache = false;
+    // [OV8] not used
+    //protected $_expireQueryCache = false;
     protected $_queryCacheTTL;
 
 
@@ -158,7 +165,8 @@ abstract class Doctrine_Query_Abstract
             'forUpdate' => false,
             'from'      => array(),
             'set'       => array(),
-            'join'      => array(),
+            // [OV17] not used
+            //'join'      => array(),
             'where'     => array(),
             'groupby'   => array(),
             'having'    => array(),
@@ -175,7 +183,8 @@ abstract class Doctrine_Query_Abstract
                             'select'    => array(),
                             'forUpdate' => false,
                             'set'       => array(),
-                            'join'      => array(),
+                            // [OV17] not used
+                            //'join'      => array(),
                             'where'     => array(),
                             'groupby'   => array(),
                             'having'    => array(),
@@ -205,13 +214,20 @@ abstract class Doctrine_Query_Abstract
      */
     protected $_queryComponents = array();
 
-	/**
+    /**
+     * [OV11]
+     * Added parent query components for subqueries, to indicate subquery context
+     * @var array
+     */
+    protected $_parentQueryComponents = array();
+
+    /**
      * Stores the root DQL alias
      *
      * @var string
      */
     protected $_rootAlias = '';
-	
+    
     /**
      * @var integer $type                   the query type
      *
@@ -269,6 +285,20 @@ abstract class Doctrine_Query_Abstract
      * @var bool Boolean variable for whether the limitSubquery method of accessing tables via a many relationship should be used.
      */
     protected $disableLimitSubquery = false;
+
+    // [OV17] dependency map
+    /**
+     * A map of table dependences for various sql parts in this query
+     * @var array
+     */
+    protected $_dependences = array();
+
+    // [OV17] pointer to current sql part to save into dependency map
+    /**
+     * current sql part for adding dependences
+     * @var string
+     */
+    protected $_currentDependencyPart;
 
     /**
      * Constructor.
@@ -374,6 +404,32 @@ abstract class Doctrine_Query_Abstract
         $q .= ( ! empty($this->_dqlParts['offset'])) ? ' OFFSET ' . implode(' ', $this->_dqlParts['offset']) : '';
 
         return $q;
+    }
+
+    // [OV6]
+    /**
+     * getDqlWithParams
+     * returns the DQL query that is represented by this query object, with interpolated param values
+     *
+     * the query is built from $_dqlParts
+     *
+     * @return string   the DQL query
+     */
+    public function getDqlWithParams()
+    {
+        $dql = $this->getDql();
+        $params = $this->getFlattenedParams();
+        
+        // [OV13]
+        $dql = $this->_adjustWhereInSql($dql, $params);
+
+        foreach($params as &$param)
+        {
+            $param = $this->_conn->quote($param);
+        }
+
+        $dql = str_replace('?', '%s', $dql);
+        return vsprintf($dql, $params);
     }
 
     /**
@@ -551,9 +607,35 @@ abstract class Doctrine_Query_Abstract
 
         $params = array_merge($this->_params['join'], $this->_params['where'], $this->_params['having'], $this->_params['exec']);
 
-        $this->fixArrayParameterValues($params);
+        // [OV13]
+        //$this->fixArrayParameterValues($params);
 
-        return $this->_execParams;
+        //return $this->_execParams;
+        return $params;
+    }
+
+    // [OV13] moved logic from Doctrine_Query::adjustProcessedParam
+    /**
+     * Adjust the processed param index for "foo.bar IN ?" support
+     *
+     * @param array $params
+     * @param int $index
+     * @return array
+     */
+    protected function _adjustProcessedParam(array $params = null, $index)
+    {
+        // Retrieve all params
+        $params = null !== $params ? $params : $this->getInternalParams();
+
+        // Retrieve already processed values
+        $first = array_slice($params, 0, $index);
+        $last = array_slice($params, $index, count($params) - $index);
+
+        // Include array as values splicing the params array
+        array_splice($last, 0, 1, $last[0]);
+
+        // Put all param values into a single index
+        return array_merge($first, $last);
     }
 
     /**
@@ -562,7 +644,7 @@ abstract class Doctrine_Query_Abstract
     public function fixArrayParameterValues($params = array())
     {
         $i = 0;
-	
+
         foreach ($params as $param) {
             if (is_array($param)) {
                 $c = count($param);
@@ -633,7 +715,9 @@ abstract class Doctrine_Query_Abstract
 
         $tableAlias = $this->getSqlTableAlias($componentAlias);
 
-        if ($this->_type !== Doctrine_Query::SELECT) {
+        // [OV16] improved checks for whether table alias should be used
+        //if ($this->_type !== Doctrine_Query::SELECT) {
+        if (!$this->shouldUseTableAlias($componentAlias)) {
             $tableAlias = '';
         } else {
             $tableAlias .= '.';
@@ -768,7 +852,11 @@ abstract class Doctrine_Query_Abstract
     {
         $this->_params =& $query->_params;
         $this->_tableAliasMap =& $query->_tableAliasMap;
-        $this->_queryComponents =& $query->_queryComponents;
+        // [OV5] do not set queryComponents by reference to a subquery - what happens in subquery, stays in subquery
+        //$this->_queryComponents =& $query->_queryComponents;
+        $this->_queryComponents = $query->_queryComponents;
+        // [OV11] added parent query components for subqueries, to indicate subquery context
+        $this->_parentQueryComponents =& $query->_queryComponents;
         $this->_tableAliasSeeds = $query->_tableAliasSeeds;
         return $this;
     }
@@ -869,12 +957,32 @@ abstract class Doctrine_Query_Abstract
      * calculateQueryCacheHash
      * calculate hash key for query cache
      *
+     * @param bool $limitSubquery separate cache for query incl. limitsubquery
      * @return string    the hash
      */
-    public function calculateQueryCacheHash()
+    public function calculateQueryCacheHash($limitSubquery = true)
     {
-        $dql = $this->getDql();
-        $hash = md5($dql . var_export($this->_pendingJoinConditions, true) . 'DOCTRINE_QUERY_CACHE_SALT');
+        // [OV9] cache without limit and offset
+        if($this->_conn->getAttribute(Doctrine_Core::ATTR_QUERY_CACHE_NO_OFFSET_LIMIT)) {
+            $dqlParts = $this->_dqlParts;
+            $this->_dqlParts['limit'] = array();
+            $this->_dqlParts['offset'] = array();
+
+            $dql = $this->getDql();
+
+            // restore dqlParts
+            $this->_dqlParts = $dqlParts;
+        } else {
+            $dql = $this->getDql();
+        }
+
+        // [OV11] added parent query components for subqueries, to indicate subquery context (different cache hash for different context)
+        $hash = md5(
+                $dql
+                . var_export($this->_pendingJoinConditions, true)
+                . var_export(array_keys($this->_parentQueryComponents), true)
+                . 'DOCTRINE_QUERY_CACHE_SALT'
+            ) .'_'. (int)$limitSubquery;
         return $hash;
     }
 
@@ -929,7 +1037,8 @@ abstract class Doctrine_Query_Abstract
 
         // Check if we're not using a Doctrine_View
         if ( ! $this->_view) {
-            if ($this->_queryCache !== false && ($this->_queryCache || $this->_conn->getAttribute(Doctrine_Core::ATTR_QUERY_CACHE))) {
+            // [OV8] queryCache modifications - hook it in getSqlQuery method instead of execute method only
+            /*if ($this->_queryCache !== false && ($this->_queryCache || $this->_conn->getAttribute(Doctrine_Core::ATTR_QUERY_CACHE))) {
                 $queryCacheDriver = $this->getQueryCacheDriver();
                 $hash = $this->calculateQueryCacheHash();
                 $cached = $queryCacheDriver->fetch($hash);
@@ -961,9 +1070,9 @@ abstract class Doctrine_Query_Abstract
                         $queryCacheDriver->save($hash, $serializedQuery, $this->getQueryCacheLifeSpan());
                     }
                 }
-            } else {
+            } else {*/
                 $query = $this->getSqlQuery($params);
-            }
+            //}
         } else {
             $query = $this->_view->getSelectSql();
         }
@@ -971,10 +1080,24 @@ abstract class Doctrine_Query_Abstract
         // Get prepared SQL params for execution
         $params = $this->getInternalParams();
 
-        if ($this->isLimitSubqueryUsed() &&
-                $this->_conn->getAttribute(Doctrine_Core::ATTR_DRIVER_NAME) !== 'mysql') {
-            $params = array_merge((array) $params, (array) $params);
-        }
+        // [OV13] moved limit subquery logic to getSqlQuery method
+        // [OV7] mysql should also use limit subquery in the same format as pgsql
+        //if ($this->isLimitSubqueryUsed()/* &&
+        //      $this->_conn->getAttribute(Doctrine_Core::ATTR_DRIVER_NAME) !== 'mysql'*/) {
+
+            // [OV10] params duplicates for subquery should be inserted in correct place in params array.
+        //  // count occurrences of '?' character before subquery (which are not in quotes nor double quotes)
+        //  $queryBeforeSubquery = substr($query, 0, strpos($query, $this->_limitSubquerySql));
+            // remove quoted or double-quoted parts
+        //  $queryBeforeSubquery = preg_replace('/\"[^"]*\"|\'[^\']*\'/', '', $queryBeforeSubquery);
+        //  $count = substr_count($queryBeforeSubquery, '?');
+        //  if($count > 0) {
+        //      array_splice($params, $count, 0, $params);
+        //  } else {
+        //      // no question marks, we could have named params then. do it "the original" way
+        //      $params = array_merge((array) $params, (array) $params);
+        //  }
+        //}
 
         if ($this->_type !== self::SELECT) {
             return $this->_conn->exec($query, $params);
@@ -1117,9 +1240,9 @@ abstract class Doctrine_Query_Abstract
                 // Trigger preDql*() callback event
                 $params = array('component' => $component, 'alias' => $alias);
                 $event = new Doctrine_Event($record, $callback['const'], $this, $params);
-
-                $record->$callback['callback']($event);
-                $table->getRecordListener()->$callback['callback']($event);
+                
+                $record->{$callback['callback']}($event);
+                $table->getRecordListener()->{$callback['callback']}($event);
             }
         }
 
@@ -1149,7 +1272,7 @@ abstract class Doctrine_Query_Abstract
         $copy->free();
 
         if ($componentsBefore !== $componentsAfter) {
-            return array_diff($componentsAfter, $componentsBefore);
+            return Doctrine_Lib::arrayDiffSimple($componentsAfter, $componentsBefore);
         } else {
             return $componentsAfter;
         }
@@ -1176,6 +1299,13 @@ abstract class Doctrine_Query_Abstract
     {
         $cached = unserialize($cached);
         $this->_tableAliasMap = $cached[2];
+        // [OV8] added rootAlias, sqlParts, isLimitSubqueryUsed and limitSubquery to cache
+        $this->_rootAlias = $cached[3];
+        $this->_sqlParts = $cached[4];
+        $this->_isLimitSubqueryUsed = $cached[5];
+        $this->_limitSubquerySql = $cached[6];
+        // [OV17] added dependences to cache
+        $this->_dependences = isset($cached[7]) ? $cached[7] : array();
         $customComponent = $cached[0];
 
         $queryComponents = array();
@@ -1236,7 +1366,18 @@ abstract class Doctrine_Query_Abstract
             }
         }
 
-        return serialize(array($customComponent, $componentInfo, $this->getTableAliasMap()));
+        // [OV8] added rootAlias, sqlParts (without offset or limit), isLimitSubqueryUsed and limitSubquery to cache
+        // [OV17] added dependences to cache
+        return serialize(array(
+            $customComponent,
+            $componentInfo,
+            $this->getTableAliasMap(),
+            $this->_rootAlias,
+            array_merge($this->_sqlParts, array('offset' => false, 'limit' => false)),
+            $this->_isLimitSubqueryUsed,
+            $this->_limitSubquerySql,
+            $this->_dependences
+        ));
     }
 
     /**
@@ -1367,9 +1508,10 @@ abstract class Doctrine_Query_Abstract
     public function andWhereIn($expr, $params = array(), $not = false)
     {
         // if there's no params, return (else we'll get a WHERE IN (), invalid SQL)
-        if (isset($params) and (count($params) == 0)) {
+        // [OV13] if there's no params, WHERE IN (NULL) will be used to return empty set
+        /*if (isset($params) and (count($params) == 0)) {
             return $this;
-        }
+        }*/
 
         if ($this->_hasDqlQueryPart('where')) {
             $this->_addDqlQueryPart('where', 'AND', true);
@@ -1394,7 +1536,8 @@ abstract class Doctrine_Query_Abstract
     public function orWhereIn($expr, $params = array(), $not = false)
     {
         // if there's no params, return (else we'll get a WHERE IN (), invalid SQL)
-        if (isset($params) and (count($params) == 0)) {
+        // [OV13] if there's no params, WHERE IN (NULL) will be used to return empty set (last condition added)
+        if (isset($params) and (count($params) == 0) and $this->_hasDqlQueryPart('where')) {
             return $this;
         }
 
@@ -1413,14 +1556,18 @@ abstract class Doctrine_Query_Abstract
         $params = (array) $params;
 
         // if there's no params, return (else we'll get a WHERE IN (), invalid SQL)
-        if (count($params) == 0) {
+        // [OV13] if there's no params, WHERE IN (NULL) will be used to return empty set
+        /*if (count($params) == 0) {
             throw new Doctrine_Query_Exception('You must pass at least one parameter when using an IN() condition.');
-        }
+        }*/
 
+        // [OV13] change the way DQL is generated for array params in WHERE IN clause - keep single "?" and process it only after query cache is saved/restored
+        $mixed = false;
         $a = array();
         foreach ($params as $k => $value) {
             if ($value instanceof Doctrine_Expression) {
                 $value = $value->getSql();
+                $mixed = true;
                 unset($params[$k]);
             } else {
                 $value = '?';
@@ -1428,10 +1575,74 @@ abstract class Doctrine_Query_Abstract
             $a[] = $value;
         }
 
-        $this->_params['where'] = array_merge($this->_params['where'], $params);
-
-        return $expr . ($not === true ? ' NOT' : '') . ' IN (' . implode(', ', $a) . ')';
+        if($mixed) {
+            $this->_params['where'] = array_merge($this->_params['where'], $params);
+        } else {
+            // [OV13] just store the params array
+            $this->_params['where'][] = $params;
+        }
+        
+        return $expr . ($not === true ? ' NOT' : '') . ' IN ' . ($mixed ? '(' . implode(', ', $a) . ')' : '?');
     }
+
+    // [OV13]
+    /**
+     * Adjust array params for "foo.bar IN ?"
+     *
+     * @param $sql
+     * @param array $params reference to params array
+     * @return mixed
+     */
+    protected function _adjustWhereInSql($sql, array &$params = array())
+    {
+        $arrParams = array();
+        $maxArrParam = null;
+        foreach($params as $key => $param) {
+            if (is_array($param)) {
+                $count = count($param);
+                $arrParams[$key] = $count;
+                $maxArrParam = $key;
+            }
+        }
+
+        if(!$arrParams) {
+            return $sql;
+        }
+
+        $paramsPos = Doctrine_Lib::getPlaceholderOffsets($sql, $maxArrParam);
+
+        $paramOffset = 0;
+        $sqlOffset = 0;
+        foreach($arrParams as $index => $count) {
+            if(!isset($paramsPos[$index])) continue;
+
+            if(!preg_match('/\sIN\s+(\()?\s*$/i', substr($sql, 0, $paramsPos[$index] + $sqlOffset), $matches)) {
+                // it's not "where in"...
+                continue;
+            }
+
+            // replace single "?" with series of "?, ?"
+            $str = !$count ? 'NULL' : (str_repeat('?, ', $count - 1) . '?');
+            $parenthesed = !empty($matches[1]);
+            if(!$parenthesed) {
+                // wrap with parentheses, if not wrapped
+                $str = '(' . $str . ')';
+            }
+
+            $sql = substr_replace($sql, $str, $paramsPos[$index] + $sqlOffset, 1);
+            $sqlOffset += strlen($str) - 1;
+
+            if(!$count) {
+                unset($params[$index + $paramOffset]); // remove param because it's replaced with 'NULL' in sql
+            } else {
+                $params = $this->_adjustProcessedParam($params, $index + $paramOffset);
+                $paramOffset += $count - 1;
+            }
+        }
+
+        return $sql;
+    }
+
 
     /**
      * Adds NOT IN condition to the query WHERE part.
@@ -1783,7 +1994,8 @@ abstract class Doctrine_Query_Abstract
                     'forUpdate' => false,
                     'from'      => array(),
                     'set'       => array(),
-                    'join'      => array(),
+                    // [OV17] not used
+                    //'join'      => array(),
                     'where'     => array(),
                     'groupby'   => array(),
                     'having'    => array(),
@@ -1906,6 +2118,16 @@ abstract class Doctrine_Query_Abstract
         return $this;
     }
 
+    // [OV8] added isQueryCacheEnabled method
+    /**
+     * @return bool
+     */
+    public function isQueryCacheEnabled()
+    {
+        return $this->_queryCache !== false
+            && ($this->_queryCache || $this->_conn->getAttribute(Doctrine_Core::ATTR_QUERY_CACHE));
+    }
+
     /**
      * expireCache
      *
@@ -1918,17 +2140,18 @@ abstract class Doctrine_Query_Abstract
         return $this;
     }
 
-    /**
+    // [OV8] pointless method removed
+    /*
      * expireQueryCache
      *
      * @param boolean $expire       whether or not to force cache expiration
      * @return Doctrine_Query     this object
      */
-    public function expireQueryCache($expire = true)
+    /*public function expireQueryCache($expire = true)
     {
         $this->_expireQueryCache = $expire;
         return $this;
-    }
+    }*/
 
     /**
      * setResultCacheLifeSpan
@@ -2078,6 +2301,9 @@ abstract class Doctrine_Query_Abstract
     {
         $this->removeSqlQueryPart($queryPartName);
 
+        // [OV17] remember table alias dependeces found in this sql part
+        $this->setCurrentDependencyPart($queryPartName);
+
         if (is_array($queryParts) && ! empty($queryParts)) {
             foreach ($queryParts as $queryPart) {
                 $parser = $this->_getParser($queryPartName);
@@ -2091,6 +2317,9 @@ abstract class Doctrine_Query_Abstract
                 }
             }
         }
+
+        // [OV17] clear current sql part for dependences
+        $this->setCurrentDependencyPart(null);
     }
 
     /**
@@ -2167,5 +2396,170 @@ abstract class Doctrine_Query_Abstract
     public function setDisableLimitSubquery($disableLimitSubquery)
     {
         $this->disableLimitSubquery = $disableLimitSubquery;
+    }
+
+    /**
+     * Should table alias be used for this component alias?
+     *
+     * There are different syntaxes for UPDATE JOIN queries
+     *
+     * @param string $componentAlias
+     * @return bool
+     */
+    // [OV16] improved checks for whether table alias should be used
+    public function shouldUseTableAlias($componentAlias = null)
+    {
+        if($this->_type === self::SELECT) {
+            return true;
+        }
+
+        if($this->_type === self::UPDATE && strtolower($this->_conn->getDriverName()) == 'mysql') {
+            $hasJoins = count($this->_dqlParts['from']) > 1;
+            //if(is_array($componentAlias)) {
+            //    $componentAlias = implode('.', $componentAlias);
+            //}
+            if($hasJoins) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // [OV17]
+    /**
+     * Store table alias dependency for an sql part
+     *
+     * @param string|null $sqlPart if null, then currentDependencyPart will be used
+     * @param string|null $tableAlias null - set a dependency to root table alias
+     * @return $this
+     */
+    public function addDependency($sqlPart = null, $tableAlias = null)
+    {
+        if(null === $tableAlias && !$this->_rootAlias) {
+            if(!$this->_rootAlias) {
+                // sql is not parsed yet, root alias not yet available
+                return $this;
+            }
+            $tableAlias = $this->getSqlTableAlias($this->_rootAlias);
+        }
+
+        if(null === $sqlPart) {
+            $sqlPart = $this->_currentDependencyPart;
+        }
+
+        if(null === $sqlPart) {
+            // can't add a dependency if sqlpart is not set
+            return $this;
+        }
+
+        $this->_dependences[$sqlPart][$tableAlias] = true;
+        return $this;
+    }
+
+    // [OV17]
+    /**
+     * Store multiple table alias dependences for an sql part
+     *
+     * @param string|null $sqlPart if null, then currentDependencyPart will be used
+     * @param array $tableAliases
+     * @return $this
+     */
+    public function addDependences($sqlPart = null, array $tableAliases)
+    {
+        foreach($tableAliases as $tableAlias) {
+            $this->addDependency($sqlPart, $tableAlias);
+        }
+        return $this;
+    }
+
+    // [OV17]
+    /**
+     * Get table alias dependences for an sql part
+     *
+     * @param string|array|null $sqlParts single or multiple parts, or null to get all dependences
+     * @param bool $exceptRoot strip out dependences to root table
+     * @return array (sqlPart => (alias => true)) or just array(alias => true) if only single sqlPart is passed
+     */
+    public function getDependences($sqlParts = null, $exceptRoot = true)
+    {
+        if ( ! $this->_queryComponents) {
+            // parse the query, if not parsed yet
+            $this->getSqlQuery(array(), false);
+        }
+
+        $dependences = $this->_dependences;
+        if(null !== $sqlParts) {
+            $sqlParts = (array)$sqlParts;
+            $dependences = array_intersect_key($dependences, array_flip($sqlParts));
+        }
+
+        if($exceptRoot && $this->_rootAlias) {
+            $rootTableAlias = $this->getSqlTableAlias($this->_rootAlias);
+            foreach($dependences as $sqlPart => &$aliases) {
+                unset($aliases[$rootTableAlias]);
+            }
+        }
+
+        if(null !== $sqlParts) {
+            if(count($sqlParts) > 1) {
+                // set empty arrays for parts which do not have dependences
+                $dependences = array_replace(array_fill_keys($sqlParts, []), $dependences);
+            } else {
+                $dependences = array_shift($dependences);
+            }
+        }
+
+        return $dependences;
+    }
+
+    /**
+     * Get all table alias dependences in the query (except join dependences)
+     * Dependences for all sql parts are merged into one array to get a single list of dependent table aliases
+     *
+     * @param array|null $sqlParts multiple parts, or null to get all dependences
+     * @param bool $exceptRoot strip out dependences to root table
+     * @return array
+     */
+    public function getDependencesMerged($sqlParts = null, $exceptRoot = true)
+    {
+        if($sqlParts && count($sqlParts) < 2) {
+            throw new InvalidArgumentException('sqlParts argument should be either an array with more than 1 element or null');
+        }
+
+        $dependences = $this->getDependences($sqlParts, $exceptRoot);
+        if(count($dependences) > 1) {
+            $dependences = call_user_func_array('array_merge', array_values($dependences));
+        } else {
+            $dependences = array_shift($dependences);
+        }
+
+        return $dependences;
+    }
+
+    // [OV17]
+    /**
+     * Clear table alias dependences for passed part
+     *
+     * @param string $sqlPart
+     * @return $this
+     */
+    public function clearDependences($sqlPart)
+    {
+        unset($this->_dependences[$sqlPart]);
+        return $this;
+    }
+
+    // [OV17]
+    /**
+     * Set current sql part for adding dependences
+     *
+     * @param string $sqlPart
+     * @return $this
+     */
+    public function setCurrentDependencyPart($sqlPart)
+    {
+        $this->_currentDependencyPart = $sqlPart;
+        return $this;
     }
 }

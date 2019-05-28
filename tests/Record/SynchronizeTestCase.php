@@ -96,7 +96,9 @@ class Doctrine_Record_Synchronize_TestCase extends Doctrine_UnitTestCase
 
     public function testSynchronizeAfterSaveRecord()
     {
-        $user = Doctrine_Query::create()->from('User u, u.Group g, u.Email e, u.Phonenumber p')->fetchOne();
+        $user = Doctrine_Query::create()->from('User u, u.Group g, u.Email e, u.Phonenumber p')
+            ->orderBy('u.id, g.id DESC') // added by mh - fixed test case
+            ->fetchOne();
         $this->assertEqual($user->Phonenumber->count(), 1);
         $this->assertEqual($user->Phonenumber[0]->phonenumber, '555 321');
         $this->assertEqual($user->Email->address, 'johndow@mail.com');

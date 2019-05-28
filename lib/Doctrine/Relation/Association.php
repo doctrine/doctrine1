@@ -56,27 +56,62 @@ class Doctrine_Relation_Association extends Doctrine_Relation
      */
     public function getRelationDql($count, $context = 'record')
     {
-        $table = $this->definition['refTable'];
-        $component = $this->definition['refTable']->getComponentName();
-        
+        // [OV1] modified
+        $component = $this->getTable()->getComponentName();
+        $refComponent = $this->definition['refTable']->getComponentName();
+        $sub = substr(str_repeat("?, ", $count),0,-2);
+
         switch ($context) {
             case "record":
-                $sub  = substr(str_repeat("?, ", $count),0,-2);
-                $dql  = 'FROM ' . $this->getTable()->getComponentName();
-                $dql .= '.' . $component;
-                $dql .= ' WHERE ' . $this->getTable()->getComponentName()
-                . '.' . $component . '.' . $this->getLocalRefColumnName() . ' IN (' . $sub . ')';
-                $dql .= $this->getOrderBy($this->getTable()->getComponentName(), false);
+                $dql  = 'FROM ' . $component . '.' . $refComponent;
+                $dql .= ' WHERE ' . $component . '.' . $refComponent . '.' . $this->getLocalRefColumnName() . ' IN (' . $sub . ')';
+                $dql .= $this->getOrderBy($component, false, $component . '.' . $refComponent);
                 break;
             case "collection":
-                $sub  = substr(str_repeat("?, ", $count),0,-2);
-                $dql  = 'FROM ' . $component . '.' . $this->getTable()->getComponentName();
-                $dql .= ' WHERE ' . $component . '.' . $this->getLocalRefColumnName() . ' IN (' . $sub . ')';
-                $dql .= $this->getOrderBy($component, false);
+                $dql  = 'FROM ' . $refComponent . '.' . $component;
+                $dql .= ' WHERE ' . $refComponent . '.' . $this->getLocalRefColumnName() . ' IN (' . $sub . ')';
+                $dql .= $this->getOrderBy($refComponent . '.' . $component, false, $refComponent);
                 break;
         }
 
         return $dql;
+    }
+
+    // [OV1] added
+    /**
+     * Get the relationship orderby SQL/DQL
+     *
+     * @param string $alias        The alias to use
+     * @param boolean $columnNames Whether or not to use column names instead of field names
+     * @param string $refAlias     The alias to use for refTable
+     * @return string $orderBy
+     */
+    public function getOrderBy($alias = null, $columnNames = false, $refAlias = null)
+    {
+        if ( ! $alias) {
+           $alias = $this->getTable()->getComponentName();
+        }
+
+        $orderBy = null;
+        $refTable = $this->definition['refTable'];
+        if ( ! $refAlias) {
+           $refAlias = $alias . '.' . $this->definition['refTable']->getComponentName();
+        }
+
+        if(!empty($this->definition['refOrderBy'])) {
+            $orderBy = $refTable->processOrderBy($refAlias, $this->definition['refOrderBy'], $columnNames);
+            if ($orderBy == $this->definition['refOrderBy']) {
+                $orderBy = null;
+            }
+        } else {
+            $orderBy = $refTable->getOrderByStatement($refAlias, $columnNames);
+        }
+
+        if (!$orderBy) {
+            $orderBy = $this->getOrderByStatement($alias, $columnNames);
+        }
+
+        return $orderBy ? ' ORDER BY ' . $orderBy : '';
     }
 
 	/**

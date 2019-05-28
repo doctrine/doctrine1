@@ -83,7 +83,8 @@ class Doctrine_Connection_Mysql extends Doctrine_Connection_Common
                                             array('start' => '/*', 'end' => '*/', 'escape' => false),
                                             );
 
-        $this->properties['varchar_max_length'] = 255;
+        //$this->properties['varchar_max_length'] = 255;
+        $this->properties['varchar_max_length'] = 65535; // modified by mh, mysql supports it since 5.0.3
 
         parent::__construct($manager, $adapter);
     }

@@ -774,6 +774,9 @@ abstract class Doctrine_Connection extends Doctrine_Configurable implements Coun
      */
     public function quote($input, $type = null)
     {
+        if(is_string($input) && $this->dbh instanceof PDO) {
+            return $this->dbh->quote($input);
+        }
         return $this->formatter->quote($input, $type);
     }
 

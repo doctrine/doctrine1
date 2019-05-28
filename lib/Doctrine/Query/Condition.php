@@ -124,9 +124,12 @@ abstract class Doctrine_Query_Condition extends Doctrine_Query_Part
                     // a component found
                     $field     = array_pop($a);
                 	$reference = implode('.', $a);
+                	$tableAlias = $this->query->getSqlTableAlias($reference);
                     $value     = $this->query->getConnection()->quoteIdentifier(
-                        $this->query->getSqlTableAlias($reference). '.' . $field
+                        $tableAlias. '.' . $field
                     );
+                	// [OV17] remember sql dependences
+                    $this->query->addDependency(null, $tableAlias);
                 }
             }
         } else {

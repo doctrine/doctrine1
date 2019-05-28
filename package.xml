@@ -715,7 +715,7 @@ requiring needless code duplication.</description>
      <file name="EnumTest.php" role="test" />
      <file name="EnumTest2.php" role="test" />
      <file name="EnumTest3.php" role="test" />
-     <file name="Error.php" role="test" />
+     <file name="ErrorRecord.php" role="test" />
      <file name="EventListenerChainTest.php" role="test" />
      <file name="EventListenerTest.php" role="test" />
      <file name="FieldNameTest.php" role="test" />

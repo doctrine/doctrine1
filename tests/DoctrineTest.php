@@ -118,6 +118,13 @@ class DoctrineTest
             }
         }
 
+        if (isset($options['case'])) {
+            $testGroup = new GroupTest('Doctrine Case Test', 'case');
+            foreach ($options['case'] as $class) {
+                $testGroup->addTestCase(new $class);
+            }
+        }
+
         $filter = '';
         if (isset($options['filter'])) {
             $filter = $options['filter'];

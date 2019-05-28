@@ -345,7 +345,7 @@ class Doctrine_DataDict_Mysql_TestCase extends Doctrine_UnitTestCase
     {
         $a = array('type' => 'string', 'length' => 2000);
 
-        $this->assertEqual($this->dataDict->GetNativeDeclaration($a), 'TEXT');
+        $this->assertEqual($this->dataDict->GetNativeDeclaration($a), 'VARCHAR(2000)');
     }
 
     public function testGetNativeDeclarationSupportsArrayType2() 

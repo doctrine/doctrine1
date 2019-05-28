@@ -71,7 +71,8 @@ abstract class Doctrine_Relation implements ArrayAccess
                                   'owningSide'  => false, // whether this is the owning side
                                   'refClassRelationAlias' => null,
                                   'foreignKeyName' => null,
-                                  'orderBy' => null
+                                  'orderBy' => null,
+                                  'refOrderBy' => null, // for ordering m2m relations by columns in refClass
                                   );
 
     protected $_isRefClass = null;

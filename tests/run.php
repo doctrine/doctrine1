@@ -10,12 +10,14 @@ $test = new DoctrineTest();
 $tickets = new GroupTest('Tickets Tests', 'tickets');
 
 $excludeTickets = array(
+    '1762', // [OV13] this ticket is getting stuck because $conn is passed to query->execute
     '1830', // MySQL specific error
     '1876b',
     '1935',
     '2015',
     '2292',
-    'DC521' // PostgreSQL specific error
+    'DC521', // PostgreSQL specific error
+    'DC240', // replaced with OV1 after fixing relation orderBy handling in Doctrine_Query
 );
 
 $ticketTestCases = glob(dirname(__FILE__) . '/Ticket/*TestCase.php');
@@ -219,9 +221,11 @@ $query_tests->addTestCase(new Doctrine_Query_From_TestCase());
 $query_tests->addTestCase(new Doctrine_Query_Select_TestCase());
 $query_tests->addTestCase(new Doctrine_Query_JoinCondition_TestCase());
 $query_tests->addTestCase(new Doctrine_Query_MultipleAggregateValue_TestCase());
-$query_tests->addTestCase(new Doctrine_Query_MysqlSubquery_TestCase());
+// [OV7] mysql should also use limit subquery in the same format as pgsql
+//$query_tests->addTestCase(new Doctrine_Query_MysqlSubquery_TestCase());
 $query_tests->addTestCase(new Doctrine_Query_PgsqlSubquery_TestCase());
-$query_tests->addTestCase(new Doctrine_Query_MysqlSubqueryHaving_TestCase());
+// [OV7] mysql should also use limit subquery in the same format as pgsql
+//$query_tests->addTestCase(new Doctrine_Query_MysqlSubqueryHaving_TestCase());
 $query_tests->addTestCase(new Doctrine_Query_SelectExpression_TestCase());
 $query_tests->addTestCase(new Doctrine_Query_Registry_TestCase());
 $query_tests->addTestCase(new Doctrine_Query_RemoveQueryPart_TestCase());

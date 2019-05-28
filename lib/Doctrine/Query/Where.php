@@ -133,14 +133,16 @@ class Doctrine_Query_Where extends Doctrine_Query_Condition
         }
         
         // Right Expression
+        // [OV13] do not adjust WHERE IN array param here, only wrap it in parentheses. adjust it after sql cache is saved, before execution
         $rightExpr = ($rightExpr == '?' && $isInX)
-            ? $this->_buildWhereInArraySqlPart($rightExpr)
+            //? $this->_buildWhereInArraySqlPart($rightExpr)
+            ? '(?)'
             : $this->query->parseClause($rightExpr);
 
         return $leftExpr . ' ' . $operator . ' ' . $rightExpr;
     }
 
-
+    // [OV13] @deprecated
     protected function _buildWhereInArraySqlPart($rightExpr)
     {
         $params = $this->query->getInternalParams();
@@ -177,10 +179,15 @@ class Doctrine_Query_Where extends Doctrine_Query_Condition
 
         $sub = $this->_tokenizer->bracketTrim(substr($where, $pos));
 
-        $q = $this->query->createSubquery()->parseDqlQuery($sub, false);
-        $sql = $q->getSqlQuery();
-        $q->free();
+        // [OV17] refactored
+        $sql = $this->query->parseSubquery($sub);
 
-        return $operator . ' (' . $sql . ')';
+        return $operator . ' ' . $sql;
+
+        //$q = $this->query->createSubquery()->parseDqlQuery($sub, false);
+        //$sql = $q->getSqlQuery();
+        //$q->free();
+
+        // return $operator . ' (' . $sql . ')';
     }
 }

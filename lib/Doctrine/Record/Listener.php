@@ -101,6 +101,10 @@ class Doctrine_Record_Listener implements Doctrine_Record_Listener_Interface
     public function postSave(Doctrine_Event $event)
     { }
 
+    // [OV4] added
+    public function postRelatedSave(Doctrine_Event $event)
+    { }
+
     public function preDqlDelete(Doctrine_Event $event)
     { }
 

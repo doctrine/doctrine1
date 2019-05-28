@@ -101,9 +101,13 @@ class Doctrine_Query_AggregateValue_TestCase extends Doctrine_UnitTestCase
 
         $this->assertEqual($users->count(), 2);
         
-        $this->assertEqual($users[0]->state(), Doctrine_Record::STATE_PROXY);
-        $this->assertEqual($users[1]->state(), Doctrine_Record::STATE_PROXY);
-        
+        //$this->assertEqual($users[0]->state(), Doctrine_Record::STATE_PROXY);
+        //$this->assertEqual($users[1]->state(), Doctrine_Record::STATE_PROXY);
+        // [OV15] primary columns are not selected by default when group by is used
+        // records won't then be assigned with an id, so their state will be STATE_TDIRTY (not persisted, value "count" set) instead of STATE_PROXY
+        $this->assertEqual($users[0]->state(), Doctrine_Record::STATE_TDIRTY);
+        $this->assertEqual($users[1]->state(), Doctrine_Record::STATE_TDIRTY);
+
         $this->assertEqual($users[0]->count, 2);
         $this->assertEqual($users[1]->count, 2);
     }
@@ -118,8 +122,12 @@ class Doctrine_Query_AggregateValue_TestCase extends Doctrine_UnitTestCase
 
         $this->assertEqual($users->count(), 2);
         
-        $this->assertEqual($users[0]->state(), Doctrine_Record::STATE_PROXY);
-        $this->assertEqual($users[1]->state(), Doctrine_Record::STATE_PROXY);
+        //$this->assertEqual($users[0]->state(), Doctrine_Record::STATE_PROXY);
+        //$this->assertEqual($users[1]->state(), Doctrine_Record::STATE_PROXY);
+        // [OV15] primary columns are not selected by default when group by is used
+        // records won't then be assigned with an id, so their state will be STATE_TDIRTY (not persisted, value "count" set) instead of STATE_PROXY
+        $this->assertEqual($users[0]->state(), Doctrine_Record::STATE_TDIRTY);
+        $this->assertEqual($users[1]->state(), Doctrine_Record::STATE_TDIRTY);
         
         $this->assertEqual($users[0]->count, 2);
         $this->assertEqual($users[1]->count, 2);

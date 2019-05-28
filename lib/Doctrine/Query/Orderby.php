@@ -70,7 +70,9 @@ class Doctrine_Query_Orderby extends Doctrine_Query_Part
                             // Grab query connection
                             $conn = $this->query->getConnection();
 
-                            if ($this->query->getType() === Doctrine_Query::SELECT) {
+                            // [OV16] improved checks for whether table alias should be used
+                            //if ($this->query->getType() === Doctrine_Query::SELECT) {
+                            if ($this->query->shouldUseTableAlias($e)) {
                                 $componentAlias = implode('.', $e);
 
                                 if (empty($componentAlias)) {
@@ -105,10 +107,16 @@ class Doctrine_Query_Orderby extends Doctrine_Query_Part
                                 
                                 // driver specific modifications
                                 $term[0] = method_exists($conn, 'modifyOrderByColumn') ? $conn->modifyOrderByColumn($table, $field, $term[0]) : $term[0];
+
+                                // [OV17] remember sql dependences
+                                $this->query->addDependency(null, $tableAlias);
                             } else {
                                 // build sql expression
                                 $field = $this->query->getRoot()->getColumnName($field);
                                 $term[0] = $conn->quoteIdentifier($field);
+
+                                // [OV17] remember sql dependences
+                                $this->query->addDependency();
                             }
                         }
                     } else {
@@ -149,7 +157,9 @@ class Doctrine_Query_Orderby extends Doctrine_Query_Part
                                     $tableAlias = $this->query->getSqlTableAlias($componentAlias);
                                     $conn = $this->query->getConnection();
 
-                                    if ($this->query->getType() === Doctrine_Query::SELECT) {
+                                    // [OV16] improved checks for whether table alias should be used
+                                    //if ($this->query->getType() === Doctrine_Query::SELECT) {
+                                    if ($this->query->shouldUseTableAlias($componentAlias)) {
                                         // build sql expression
                                         $term[0] = $conn->quoteIdentifier($tableAlias)
                                                  . '.' . $conn->quoteIdentifier($field);
@@ -160,6 +170,9 @@ class Doctrine_Query_Orderby extends Doctrine_Query_Part
                                     
                                     // driver specific modifications
                                     $term[0] = method_exists($conn, 'modifyOrderByColumn') ? $conn->modifyOrderByColumn($table, $field, $term[0]) : $term[0];
+
+                                    // [OV17] remember sql dependences
+                                    $this->query->addDependency(null, $tableAlias);
                                 } else {
                                     $found = false;
                                 }

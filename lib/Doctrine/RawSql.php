@@ -161,7 +161,7 @@ class Doctrine_RawSql extends Doctrine_Query_Abstract
                     }
                     break;
                 case 'by':
-                    continue;
+                    break;
                 default:
                     //not a keyword so we add it to the previous type.
                     if ( ! isset($parts[$type][0])) {
@@ -346,6 +346,10 @@ class Doctrine_RawSql extends Doctrine_Query_Abstract
     {
         $sql = $this->getCountSqlQuery();
         $params = $this->getCountQueryParams($params);
+
+        // [OV13] instead of calling it in getCountQueryParams
+        $this->fixArrayParameterValues($params);
+
         $results = $this->getConnection()->fetchAll($sql, $params);
 
         if (count($results) > 1) {

@@ -1,5 +1,5 @@
 <?php
-
+chdir(dirname(__FILE__));
 $_SERVER['DOCTRINE_DIR'] = realpath(dirname(__FILE__).'/../');
 
 require 'bootstrap.php';

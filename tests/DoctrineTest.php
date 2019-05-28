@@ -121,6 +121,9 @@ class DoctrineTest
         if (isset($options['case'])) {
             $testGroup = new GroupTest('Doctrine Case Test', 'case');
             foreach ($options['case'] as $class) {
+                if (!class_exists($class)) {
+                    die("Test Case $class does not exist.\n");
+                }
                 $testGroup->addTestCase(new $class);
             }
         }
@@ -132,15 +135,18 @@ class DoctrineTest
 
         //show help text
         if (isset($options['help'])) {
-            $availableGroups = sort(array_keys($this->groups));	
+            $availableGroups = array_keys($this->groups);
+            sort($availableGroups);
 	
             echo "Doctrine test runner help\n";
             echo "===========================\n";
             echo " To run all tests simply run this script without arguments. \n";
             echo "\n Flags:\n";
-            echo " -coverage will generate coverage report data that can be viewed with the cc.php script in this folder. NB! This takes time. You need xdebug to run this\n";
-            echo " -group <groupName1> <groupName2> <className1> Use this option to run just a group of tests or tests with a given classname. Groups are currently defined as the variable name they are called in this script.\n";
-            echo " -filter <string1> <string2> case insensitive strings that will be applied to the className of the tests. A test_classname must contain all of these strings to be run\n"; 
+            echo " --coverage will generate coverage report data that can be viewed with the cc.php script in this folder. NB! This takes time. You need xdebug to run this\n";
+            echo " --group <groupName1> <groupName2> <className1> Use this option to run just a group of tests or tests with a given classname. Groups are currently defined as the variable name they are called in this script.\n";
+            echo " --filter <string1> <string2> case insensitive strings that will be applied to the className of the tests. A test_classname must contain all of these strings to be run\n";
+            echo " --ticket <ticket1> <ticket2> run \"Doctrine_Ticket_<ticket1>_TestCase\" and \"Doctrine_Ticket_<ticket2>_TestCase or create the classes if they do not exist\n";
+            echo " --case <string1> <string2> run exactly that specified test cases (classnames)\n";
             echo "\nAvailable groups:\n " . implode(', ', $availableGroups) . "\n";
 
             die();
@@ -240,7 +246,7 @@ class DoctrineTest
                 if ( ! isset($options[$currentName])) {
                     $options[$currentName] = array();         
                 }
-            } else {
+            } elseif (isset($options[$currentName])) {
                 $values = $options[$currentName];
                 array_push($values, $name);    
                 $options[$currentName] = $values;

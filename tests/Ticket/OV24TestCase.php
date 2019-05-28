@@ -88,7 +88,7 @@ class Ticket_OV24_ChallengeTaskContentGroup extends Doctrine_Record
 
     public function setUp()
     {
-        $this->hasOne(Ticket_OV24_ChallengeTask::class . ' as Task', array('local' => 'id_task', 'foreign' => 'id', 'onDelete' => 'CASCADE'));
+        $this->hasOne('Ticket_OV24_ChallengeTask as Task', array('local' => 'id_task', 'foreign' => 'id', 'onDelete' => 'CASCADE'));
     }
 }
 

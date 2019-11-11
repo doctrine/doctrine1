@@ -1804,7 +1804,7 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
                 // otherwise limit would be executed after ids are reordered by distinct / group by, and that order cannot be determined.
                 if ($driverName == 'mysql') {
                     // assign an incremented number to each row with id
-                    $subquery = 'SELECT @rownum:=@rownum + 1 as row_number,'
+                    $subquery = 'SELECT @rownum:=@rownum + 1 as `row_number`,'
                         . ' doctrine_subquery_rownum_alias.' . $quotedIdentifierColumnName
                         . ' FROM (' . $subquery . ') doctrine_subquery_rownum_alias,'
                         . ' (SELECT @rownum := 0) rownum_var';
